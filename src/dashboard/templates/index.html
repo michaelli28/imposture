@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buddy Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <span class="logo" aria-label="Buddy pixel art icon">&#x25A3;</span>
+            <h1>Buddy</h1>
+            <span class="connection-dot" id="ws-status" title="WebSocket disconnected"></span>
+        </div>
+    </header>
+
+    <main class="grid">
+        <!-- Pet Status (left / main) -->
+        <section class="card pet-status">
+            <div class="emotion-circle" id="emotion-circle">
+                <span class="emotion-emoji" id="emotion-emoji">&#128578;</span>
+            </div>
+            <p class="emotion-label" id="emotion-label">{{ state.emotion | capitalize }}</p>
+
+            <div class="growth-info">
+                <span class="stage-badge" id="stage-badge">
+                    Stage {{ state.stage }}: {{ state.stage_name }}
+                </span>
+            </div>
+
+            <div class="xp-bar-wrapper">
+                <div class="xp-bar">
+                    <div class="xp-fill" id="xp-fill"
+                         style="width: {{ (state.xp / state.next_stage_xp * 100) if state.next_stage_xp else 0 }}%">
+                    </div>
+                </div>
+                <span class="xp-text" id="xp-text">{{ state.xp }} / {{ state.next_stage_xp or 'MAX' }} XP</span>
+            </div>
+
+            <div class="status-row">
+                <div class="status-indicator">
+                    <span class="dot" id="posture-dot"></span>
+                    <span id="posture-label">Posture: Good</span>
+                </div>
+            </div>
+
+            <div class="focus-section" id="focus-section">
+                <div class="focus-timer" id="focus-timer" style="display: {{ 'flex' if state.focus_active else 'none' }};">
+                    <span class="focus-icon">&#9201;</span>
+                    <span id="focus-time">00:00</span>
+                </div>
+                <div class="focus-controls">
+                    <button class="btn btn-accent" id="btn-focus-start" onclick="startFocus()">Start Focus</button>
+                    <button class="btn btn-muted" id="btn-focus-stop" onclick="stopFocus()" style="display: none;">Stop Focus</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rules (right sidebar) -->
+        <section class="card rules-panel">
+            <div class="rules-header">
+                <h2>Rules</h2>
+                <button class="btn btn-small btn-accent" id="btn-add-rule" onclick="toggleAddForm()">+ Add Rule</button>
+            </div>
+
+            <form class="add-rule-form" id="add-rule-form" style="display: none;" onsubmit="addRule(event)">
+                <select name="type" id="rule-type" required>
+                    <option value="">Type...</option>
+                    <option value="posture">Posture</option>
+                    <option value="phone">Phone</option>
+                    <option value="timer">Timer</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <input type="text" name="description" id="rule-desc" placeholder="Description" required>
+                <select name="severity" id="rule-severity" required>
+                    <option value="">Severity...</option>
+                    <option value="gentle">Gentle</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="strict">Strict</option>
+                </select>
+                <button class="btn btn-accent" type="submit">Save</button>
+            </form>
+
+            <ul class="rules-list" id="rules-list">
+                <!-- Populated by JS -->
+            </ul>
+        </section>
+
+        <!-- Stats (bottom) -->
+        <section class="card stats-bar">
+            <div class="stat">
+                <span class="stat-value" id="stat-focus">0</span>
+                <span class="stat-label">Focus (min)</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-posture">{{ state.violations_today.posture_count if state.violations_today else 0 }}</span>
+                <span class="stat-label">Posture Violations</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-phone">{{ state.violations_today.phone_count if state.violations_today else 0 }}</span>
+                <span class="stat-label">Phone Violations</span>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
