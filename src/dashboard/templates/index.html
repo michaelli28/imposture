@@ -10,22 +10,11 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="stars" id="stars"></div>
-
     <header>
         <div class="header-inner">
-            <div class="header-title">
-                <span class="logo-icon">
-                    <svg viewBox="0 0 24 32" width="20" height="27" aria-hidden="true">
-                        <rect x="0" y="12" width="5" height="10" rx="2.5" fill="#6272A4"/>
-                        <path d="M5,6 C5,2 19,2 19,6 L19,22 C19,25 17,26 15,26 L15,30 C15,31 13,31 13,30 L13,26 L11,26 L11,30 C11,31 9,31 9,30 L9,26 C7,26 5,25 5,22 Z" fill="#6272A4"/>
-                        <path d="M11,5 C11,5 20,5 20,11 C20,17 11,17 11,11 Z" fill="#8BAEC4"/>
-                    </svg>
-                </span>
-                <h1>Imposture</h1>
-            </div>
+            <a href="/" class="header-logo">imposture</a>
             <div class="header-status">
-                <span class="comms-label">Comms</span>
+                <span class="connection-label">Status</span>
                 <span class="connection-dot" id="ws-status" title="Disconnected"></span>
             </div>
         </div>
@@ -35,22 +24,15 @@
         <!-- Crewmate Status -->
         <section class="card pet-status">
             <div class="card-header">
-                <span class="card-icon" aria-hidden="true">&#9733;</span>
-                <h2>Crewmate Status</h2>
+                <span class="card-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                </span>
+                <h2>Your Buddy</h2>
             </div>
 
-            <div class="crewmate-display">
-                <div class="crewmate" id="crewmate">
-                    <div class="crewmate-backpack"></div>
-                    <div class="crewmate-body">
-                        <div class="crewmate-visor">
-                            <span class="emotion-emoji" id="emotion-emoji">&#128578;</span>
-                        </div>
-                    </div>
-                    <div class="crewmate-legs">
-                        <div class="crewmate-leg"></div>
-                        <div class="crewmate-leg"></div>
-                    </div>
+            <div class="buddy-display">
+                <div class="buddy-avatar" id="buddy-avatar">
+                    <span class="emotion-emoji" id="emotion-emoji">&#128578;</span>
                 </div>
             </div>
 
@@ -63,7 +45,7 @@
             </div>
 
             <div class="taskbar-wrapper">
-                <div class="taskbar-label">Task Progress</div>
+                <div class="taskbar-label">XP Progress</div>
                 <div class="taskbar">
                     <div class="taskbar-fill" id="xp-fill"
                          style="width: {{ (state.xp / state.next_stage_xp * 100) if state.next_stage_xp else 0 }}%">
@@ -95,8 +77,10 @@
         <section class="card rules-panel">
             <div class="card-header rules-header">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span class="card-icon" aria-hidden="true">&#9888;</span>
-                    <h2>Ship Rules</h2>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </span>
+                    <h2>Rules</h2>
                 </div>
                 <button class="btn btn-small btn-secondary" id="btn-add-rule" onclick="toggleAddForm()">+ Add</button>
             </div>
@@ -130,8 +114,10 @@
         <section class="card camera-feed">
             <div class="card-header camera-header">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span class="card-icon" aria-hidden="true">&#128249;</span>
-                    <h2>Security</h2>
+                    <span class="card-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </span>
+                    <h2>Camera</h2>
                 </div>
                 <button class="btn btn-small btn-primary" id="btn-calibrate" onclick="startCalibration()">Calibrate</button>
             </div>
@@ -147,8 +133,10 @@
         <!-- Vital Signs -->
         <section class="card stats-bar">
             <div class="card-header">
-                <span class="card-icon" aria-hidden="true">&#128200;</span>
-                <h2>Vital Signs</h2>
+                <span class="card-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                </span>
+                <h2>Stats</h2>
             </div>
             <div class="stats-row">
                 <div class="stat">
