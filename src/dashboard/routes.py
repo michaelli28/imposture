@@ -1,4 +1,4 @@
-"""API routes for the Buddy AI Desk Pet dashboard.
+"""API routes for the Wamm AI Desk Pet dashboard.
 
 Provides REST endpoints for pet state, rule CRUD, and focus session
 controls, plus the main HTML template route.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -28,10 +28,10 @@ class RuleCreateRequest(BaseModel):
 
 
 class RuleUpdateRequest(BaseModel):
-    type: str | None = None
-    description: str | None = None
-    threshold: dict[str, Any] | None = None
-    severity: str | None = None
+    type: Optional[str] = None
+    description: Optional[str] = None
+    threshold: Optional[dict[str, Any]] = None
+    severity: Optional[str] = None
 
 
 class RuleResponse(BaseModel):
@@ -48,12 +48,17 @@ def create_router(
     templates: Jinja2Templates,
     get_pet_state_manager: Callable[[], Any],
     get_rule_engine: Callable[[], Any],
+    get_cv_pipeline: Callable[[], Any] | None = None,
 ) -> APIRouter:
     """Build and return an APIRouter wired to the given dependencies."""
     router = APIRouter()
 
     @router.get("/", response_class=HTMLResponse)
-    async def index(request: Request) -> HTMLResponse:
+    async def landing(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse("landing.html", {"request": request})
+
+    @router.get("/dashboard", response_class=HTMLResponse)
+    async def dashboard(request: Request) -> HTMLResponse:
         psm = get_pet_state_manager()
         state = psm.get_state() if psm is not None else _default_state()
         return templates.TemplateResponse(
@@ -111,7 +116,7 @@ def create_router(
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    @router.delete("/api/rules/{rule_id}", status_code=204)
+    @router.delete("/api/rules/{rule_id}", status_code=204, response_model=None)
     async def delete_rule(rule_id: str) -> None:
         engine = get_rule_engine()
         if engine is None:
@@ -156,6 +161,34 @@ def create_router(
         logger.info("Focus session stopped via API")
         return {"status": "stopped"}
 
+    @router.post("/api/calibrate")
+    async def calibrate_start() -> dict[str, Any]:
+        cv = get_cv_pipeline() if get_cv_pipeline else None
+        if cv is None:
+            raise HTTPException(status_code=503, detail="CV pipeline not available")
+        started = cv.start_calibration()
+        if not started:
+            return {"status": "already_active"}
+        return {"status": "started"}
+
+    @router.get("/api/calibrate/status")
+    async def calibrate_status() -> dict[str, Any]:
+        cv = get_cv_pipeline() if get_cv_pipeline else None
+        if cv is None:
+            return {"active": False, "phase": "idle", "calibrated": False}
+        return cv.get_calibration_status()
+
+    @router.post("/api/reset")
+    async def reset_all() -> dict[str, str]:
+        psm = get_pet_state_manager()
+        if psm is not None:
+            psm.reset()
+        cv = get_cv_pipeline() if get_cv_pipeline else None
+        if cv is not None:
+            cv.reset_trackers()
+        logger.info("Full reset via API")
+        return {"status": "reset"}
+
     return router
 
 
@@ -163,10 +196,7 @@ def _default_state() -> dict[str, Any]:
     """Return a fallback state when the pet state manager is unavailable."""
     return {
         "emotion": "neutral",
-        "growth_stage": 0,
-        "growth_stage_name": "Egg",
         "xp": 0,
-        "xp_next": 15,
         "posture": "unknown",
         "focus_active": False,
         "focus_elapsed": 0,

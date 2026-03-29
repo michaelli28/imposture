@@ -1,49 +1,38 @@
-// Buddy AI Desk Pet - Arduino UNO R3 Firmware
+// Wamm AI Desk Pet - Arduino UNO R3 Firmware
 // Controlled by Raspberry Pi via USB Serial (9600 baud, JSON messages)
+// Display: 16x2 character LCD (LiquidCrystal, parallel interface)
 
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <LiquidCrystal.h>
 #include <Adafruit_NeoPixel.h>
-#include <ArduinoJson.h>
-#include <DHT.h>
 
 // ---------------------------------------------------------------------------
 // Pin definitions
 // ---------------------------------------------------------------------------
-#define OLED_CLK   13
-#define OLED_MOSI  11
-#define OLED_CS    10
-#define OLED_DC     9
-#define OLED_RST    8
+// LCD pins: RS=12, E=11, D4=5, D5=4, D6=3, D7=2
+#define LCD_RS 12
+#define LCD_E  11
+#define LCD_D4  5
+#define LCD_D5  4
+#define LCD_D6  3
+#define LCD_D7  2
 
 #define NEOPIXEL_PIN   6
 #define NEOPIXEL_COUNT 12
 
-#define BUZZER_PIN     5
-#define DHT_PIN        4
-#define VIBRATE_PIN    3
-#define BUTTON_PIN     2
+#define BUZZER_PIN     9
+#define VIBRATE_PIN    8
+#define BUTTON_PIN     7
 #define PHOTO_PIN      A0
 
 // ---------------------------------------------------------------------------
-// Display
+// Display (16 columns x 2 rows)
 // ---------------------------------------------------------------------------
-#define SCREEN_W 128
-#define SCREEN_H  64
-
-Adafruit_SSD1306 display(SCREEN_W, SCREEN_H,
-                         OLED_MOSI, OLED_CLK, OLED_DC, OLED_RST, OLED_CS);
+LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 // ---------------------------------------------------------------------------
 // NeoPixel
 // ---------------------------------------------------------------------------
 Adafruit_NeoPixel strip(NEOPIXEL_COUNT, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
-
-// ---------------------------------------------------------------------------
-// DHT sensor
-// ---------------------------------------------------------------------------
-DHT dht(DHT_PIN, DHT11);
 
 // ---------------------------------------------------------------------------
 // LED animation state
@@ -56,7 +45,7 @@ uint8_t  ledG            = 0;
 uint8_t  ledB            = 0;
 unsigned long ledPrevMs  = 0;
 bool     ledFlashOn      = false;
-uint8_t  ledPulseVal     = 0;
+int16_t  ledPulseVal     = 0;
 int8_t   ledPulseDir     = 1;
 uint16_t ledRainbowHue   = 0;
 
@@ -99,11 +88,10 @@ uint8_t serialBufIdx = 0;
 // ---------------------------------------------------------------------------
 // Current face state
 // ---------------------------------------------------------------------------
-uint8_t faceStage = 2;
-String  faceEmotion = "neutral";
+char    faceEmotion[16] = "neutral";
 bool    faceTextMode = false;
-String  textLine1 = "";
-String  textLine2 = "";
+char    textLine1[17] = "";
+char    textLine2[17] = "";
 
 // ===========================================================================
 // Setup
@@ -119,19 +107,14 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   digitalWrite(VIBRATE_PIN, LOW);
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC)) {
-    Serial.println(F("{\"error\":\"OLED init failed\"}"));
-  }
-  display.clearDisplay();
-  display.display();
+  lcd.begin(16, 2);
+  lcd.clear();
 
   strip.begin();
   strip.setBrightness(50);
   strip.show();
 
-  dht.begin();
-
-  drawFace(faceStage, faceEmotion);
+  drawFace(faceEmotion);
 }
 
 // ===========================================================================
@@ -166,31 +149,59 @@ void readSerial() {
   }
 }
 
+// Extract a JSON string value for a given key into dst. Returns false if not found.
+bool jsonStr(const char* json, const char* key, char* dst, uint8_t maxLen) {
+  char needle[32];
+  snprintf(needle, sizeof(needle), "\"%s\":\"", key);
+  const char* p = strstr(json, needle);
+  if (!p) return false;
+  p += strlen(needle);
+  uint8_t i = 0;
+  while (*p && *p != '"' && i < maxLen - 1) dst[i++] = *p++;
+  dst[i] = '\0';
+  return true;
+}
+
+// Extract a JSON integer value for a given key. Returns defaultVal if not found.
+long jsonInt(const char* json, const char* key, long defaultVal) {
+  char needle[32];
+  snprintf(needle, sizeof(needle), "\"%s\":", key);
+  const char* p = strstr(json, needle);
+  if (!p) return defaultVal;
+  p += strlen(needle);
+  while (*p == ' ') p++;
+  if (*p == '"' || *p == '{' || *p == '[') return defaultVal;
+  return strtol(p, NULL, 10);
+}
+
+// Extract a JSON array of 3 ints: "key":[r,g,b]
+bool jsonArr3(const char* json, const char* key, uint8_t* r, uint8_t* g, uint8_t* b) {
+  char needle[32];
+  snprintf(needle, sizeof(needle), "\"%s\":[", key);
+  const char* p = strstr(json, needle);
+  if (!p) return false;
+  p += strlen(needle);
+  *r = (uint8_t)strtol(p, (char**)&p, 10); if (*p == ',') p++;
+  *g = (uint8_t)strtol(p, (char**)&p, 10); if (*p == ',') p++;
+  *b = (uint8_t)strtol(p, NULL, 10);
+  return true;
+}
+
 void processCommand(const char* json) {
-  StaticJsonDocument<256> doc;
-  DeserializationError err = deserializeJson(doc, json);
-  if (err) {
-    return;
-  }
+  char val[32];
 
-  const char* cmd = doc["cmd"];
-  if (!cmd) return;
+  if (!jsonStr(json, "cmd", val, sizeof(val))) return;
 
-  if (strcmp(cmd, "face") == 0) {
-    faceStage   = doc["stage"] | 2;
-    faceEmotion = doc["emotion"] | "neutral";
+  if (strcmp(val, "face") == 0) {
+    if (!jsonStr(json, "emotion", faceEmotion, sizeof(faceEmotion)))
+      strlcpy(faceEmotion, "neutral", sizeof(faceEmotion));
     faceTextMode = false;
-    drawFace(faceStage, faceEmotion);
+    drawFace(faceEmotion);
   }
-  else if (strcmp(cmd, "leds") == 0) {
-    JsonArray color = doc["color"];
-    if (color) {
-      ledR = color[0];
-      ledG = color[1];
-      ledB = color[2];
-    }
-    const char* mode = doc["mode"];
-    if (mode) {
+  else if (strcmp(val, "leds") == 0) {
+    jsonArr3(json, "color", &ledR, &ledG, &ledB);
+    char mode[12];
+    if (jsonStr(json, "mode", mode, sizeof(mode))) {
       if (strcmp(mode, "solid") == 0)        ledMode = LED_SOLID;
       else if (strcmp(mode, "flash") == 0)   ledMode = LED_FLASH;
       else if (strcmp(mode, "pulse") == 0)   ledMode = LED_PULSE;
@@ -204,23 +215,23 @@ void processCommand(const char* json) {
     ledPrevMs   = millis();
     applyLeds();
   }
-  else if (strcmp(cmd, "buzz") == 0) {
-    const char* pattern = doc["pattern"];
-    if (pattern) {
+  else if (strcmp(val, "buzz") == 0) {
+    char pattern[16];
+    if (jsonStr(json, "pattern", pattern, sizeof(pattern))) {
       if (strcmp(pattern, "short") == 0)           startBuzz(BUZZ_SHORT);
       else if (strcmp(pattern, "long") == 0)       startBuzz(BUZZ_LONG);
       else if (strcmp(pattern, "celebration") == 0) startBuzz(BUZZ_CELE_1);
     }
   }
-  else if (strcmp(cmd, "vibrate") == 0) {
-    vibrateDurMs   = doc["duration"] | 500;
+  else if (strcmp(val, "vibrate") == 0) {
+    vibrateDurMs   = jsonInt(json, "duration", 500);
     vibrateStartMs = millis();
     vibrateActive  = true;
     digitalWrite(VIBRATE_PIN, HIGH);
   }
-  else if (strcmp(cmd, "display_text") == 0) {
-    textLine1    = doc["line1"] | "";
-    textLine2    = doc["line2"] | "";
+  else if (strcmp(val, "display_text") == 0) {
+    if (!jsonStr(json, "line1", textLine1, sizeof(textLine1))) textLine1[0] = '\0';
+    if (!jsonStr(json, "line2", textLine2, sizeof(textLine2))) textLine2[0] = '\0';
     faceTextMode = true;
     drawText(textLine1, textLine2);
   }
@@ -261,16 +272,6 @@ void reportSensors(unsigned long now) {
   Serial.print(F("{\"sensor\":\"light\",\"value\":"));
   Serial.print(lightVal);
   Serial.println(F("}"));
-
-  float temp = dht.readTemperature();
-  float hum  = dht.readHumidity();
-  if (!isnan(temp) && !isnan(hum)) {
-    Serial.print(F("{\"sensor\":\"temp\",\"value\":"));
-    Serial.print(temp, 1);
-    Serial.print(F(",\"humidity\":"));
-    Serial.print(hum, 1);
-    Serial.println(F("}"));
-  }
 }
 
 // ===========================================================================
@@ -421,287 +422,40 @@ void updateVibrate(unsigned long now) {
 }
 
 // ===========================================================================
-// Text display
+// LCD display helpers
 // ===========================================================================
-void drawText(const String& line1, const String& line2) {
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
 
-  int16_t x1, y1;
-  uint16_t w1, h1;
-  display.getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
-  display.setCursor((SCREEN_W - w1) / 2, 10);
-  display.print(line1);
+// Center a string on a 16-char line
+void lcdPrintCentered(uint8_t row, const char* text) {
+  lcd.setCursor(0, row);
+  lcd.print(F("                ")); // clear row
+  uint8_t len = strlen(text);
+  uint8_t pad = (len < 16) ? (16 - len) / 2 : 0;
+  lcd.setCursor(pad, row);
+  lcd.print(text);
+}
 
-  display.getTextBounds(line2, 0, 0, &x1, &y1, &w1, &h1);
-  display.setCursor((SCREEN_W - w1) / 2, 38);
-  display.print(line2);
-
-  display.display();
+void drawText(const char* line1, const char* line2) {
+  lcdPrintCentered(0, line1);
+  lcdPrintCentered(1, line2);
 }
 
 // ===========================================================================
-// Face rendering with GFX primitives
+// Face rendering on 16x2 LCD
 // ===========================================================================
+void drawFace(const char* emotion) {
+  const char* face;
+  const char* label;
 
-// Eye size scales with evolution stage (0=egg, 4=fully evolved)
-uint8_t eyeRadius(uint8_t stage) {
-  const uint8_t radii[] = {3, 5, 6, 7, 8};
-  return (stage <= 4) ? radii[stage] : radii[4];
-}
+  if (strcmp(emotion, "happy") == 0)          { face = "(^_^)"; label = "Happy!"; }
+  else if (strcmp(emotion, "sad") == 0)       { face = "(T_T)"; label = "Sad..."; }
+  else if (strcmp(emotion, "angry") == 0)     { face = "(>_<) Angry!"; label = "Phone Away!"; }
+  else if (strcmp(emotion, "concerned") == 0) { face = "(o_o)?"; label = "Concerned"; }
+  else if (strcmp(emotion, "sleeping") == 0)  { face = "(-_-) Zzz"; label = "Sleeping"; }
+  else if (strcmp(emotion, "excited") == 0)   { face = "(*_*)!"; label = "Excited!"; }
+  else if (strcmp(emotion, "listening") == 0) { face = "(o_o)~"; label = "Listening"; }
+  else                                       { face = "(o_o)"; label = "Neutral"; }
 
-// Mouth width scales with stage
-uint8_t mouthWidth(uint8_t stage) {
-  const uint8_t widths[] = {6, 10, 14, 18, 22};
-  return (stage <= 4) ? widths[stage] : widths[4];
-}
-
-void drawFace(uint8_t stage, const String& emotion) {
-  display.clearDisplay();
-
-  // Stage 0: egg -- just an oval with simple face
-  if (stage == 0) {
-    drawEggFace(emotion);
-    display.display();
-    return;
-  }
-
-  int16_t cx = SCREEN_W / 2;
-  int16_t cy = SCREEN_H / 2;
-  uint8_t er = eyeRadius(stage);
-  uint8_t mw = mouthWidth(stage);
-  int16_t eyeSpacing = er + 6 + stage;
-  int16_t leftEyeX  = cx - eyeSpacing;
-  int16_t rightEyeX = cx + eyeSpacing;
-  int16_t eyeY      = cy - 6 - stage;
-  int16_t mouthY    = cy + 8 + stage;
-
-  if (emotion == "happy") {
-    drawEyes(leftEyeX, rightEyeX, eyeY, er, true);
-    drawSmile(cx, mouthY, mw);
-    drawCheeks(leftEyeX - er - 2, rightEyeX + er + 2, eyeY + er, 2);
-  }
-  else if (emotion == "sad") {
-    drawEyes(leftEyeX, rightEyeX, eyeY, er, false);
-    drawFrown(cx, mouthY, mw);
-    drawTearDrop(rightEyeX, eyeY + er + 2);
-  }
-  else if (emotion == "angry") {
-    drawAngryEyes(leftEyeX, rightEyeX, eyeY, er);
-    drawFrown(cx, mouthY, mw / 2);
-  }
-  else if (emotion == "concerned") {
-    drawEyes(leftEyeX, rightEyeX, eyeY, er, false);
-    drawWavyMouth(cx, mouthY, mw);
-    drawSweatDrop(rightEyeX + er + 3, eyeY - er);
-  }
-  else if (emotion == "sleeping") {
-    drawSleepingEyes(leftEyeX, rightEyeX, eyeY, er);
-    drawSleepMouth(cx, mouthY);
-    drawZzz(cx + 25, cy - 20);
-  }
-  else if (emotion == "excited") {
-    drawStarEyes(leftEyeX, rightEyeX, eyeY, er);
-    drawBigSmile(cx, mouthY, mw);
-    drawSparkles(cx, cy);
-  }
-  else if (emotion == "listening") {
-    drawEyes(leftEyeX, rightEyeX, eyeY, er, false);
-    drawListenMouth(cx, mouthY);
-    drawSoundWaves(cx + 30, cy);
-  }
-  else {
-    // neutral
-    drawEyes(leftEyeX, rightEyeX, eyeY, er, false);
-    drawNeutralMouth(cx, mouthY, mw);
-  }
-
-  display.display();
-}
-
-// ---------------------------------------------------------------------------
-// Eye drawing helpers
-// ---------------------------------------------------------------------------
-void drawEyes(int16_t lx, int16_t rx, int16_t y, uint8_t r, bool happy) {
-  if (happy) {
-    // Upward arc eyes (happy squint)
-    for (int8_t offset = -1; offset <= 1; offset++) {
-      display.drawCircleHelper(lx, y + r / 2 + offset, r, 0x03, SSD1306_WHITE);
-      display.drawCircleHelper(rx, y + r / 2 + offset, r, 0x03, SSD1306_WHITE);
-    }
-  } else {
-    // Normal round eyes with pupils
-    display.drawCircle(lx, y, r, SSD1306_WHITE);
-    display.drawCircle(rx, y, r, SSD1306_WHITE);
-    display.fillCircle(lx + 1, y, r / 2, SSD1306_WHITE);
-    display.fillCircle(rx + 1, y, r / 2, SSD1306_WHITE);
-  }
-}
-
-void drawAngryEyes(int16_t lx, int16_t rx, int16_t y, uint8_t r) {
-  display.fillCircle(lx, y, r, SSD1306_WHITE);
-  display.fillCircle(rx, y, r, SSD1306_WHITE);
-  // Angry eyebrow lines
-  display.drawLine(lx - r - 2, y - r - 4, lx + r, y - r + 1, SSD1306_WHITE);
-  display.drawLine(rx - r, y - r + 1, rx + r + 2, y - r - 4, SSD1306_WHITE);
-  // Cut out top of eyes for angry look (black triangles)
-  display.fillTriangle(lx - r - 1, y - r - 1, lx + r + 1, y - r - 1,
-                       lx + r + 1, y - r / 2, SSD1306_BLACK);
-  display.fillTriangle(rx - r - 1, y - r - 1, rx + r + 1, y - r - 1,
-                       rx - r - 1, y - r / 2, SSD1306_BLACK);
-}
-
-void drawSleepingEyes(int16_t lx, int16_t rx, int16_t y, uint8_t r) {
-  // Closed eyes -- horizontal lines
-  display.drawLine(lx - r, y, lx + r, y, SSD1306_WHITE);
-  display.drawLine(rx - r, y, rx + r, y, SSD1306_WHITE);
-  // Small lashes
-  display.drawLine(lx - r, y, lx - r + 2, y + 2, SSD1306_WHITE);
-  display.drawLine(lx + r, y, lx + r - 2, y + 2, SSD1306_WHITE);
-  display.drawLine(rx - r, y, rx - r + 2, y + 2, SSD1306_WHITE);
-  display.drawLine(rx + r, y, rx + r - 2, y + 2, SSD1306_WHITE);
-}
-
-void drawStarEyes(int16_t lx, int16_t rx, int16_t y, uint8_t r) {
-  drawStar(lx, y, r);
-  drawStar(rx, y, r);
-}
-
-void drawStar(int16_t cx, int16_t cy, uint8_t r) {
-  // Simple 4-point star
-  display.drawLine(cx, cy - r, cx, cy + r, SSD1306_WHITE);
-  display.drawLine(cx - r, cy, cx + r, cy, SSD1306_WHITE);
-  uint8_t d = r * 7 / 10;
-  display.drawLine(cx - d, cy - d, cx + d, cy + d, SSD1306_WHITE);
-  display.drawLine(cx + d, cy - d, cx - d, cy + d, SSD1306_WHITE);
-  display.fillCircle(cx, cy, r / 3, SSD1306_WHITE);
-}
-
-// ---------------------------------------------------------------------------
-// Mouth drawing helpers
-// ---------------------------------------------------------------------------
-void drawSmile(int16_t cx, int16_t cy, uint8_t w) {
-  // Upward curve
-  for (int8_t i = -1; i <= 1; i++) {
-    display.drawCircleHelper(cx, cy - w / 3 + i, w / 2, 0x08, SSD1306_WHITE);
-    display.drawCircleHelper(cx, cy - w / 3 + i, w / 2, 0x04, SSD1306_WHITE);
-  }
-}
-
-void drawBigSmile(int16_t cx, int16_t cy, uint8_t w) {
-  // Wide open smile
-  display.fillCircle(cx, cy, w / 3, SSD1306_WHITE);
-  display.fillRect(cx - w / 3, cy - w / 3, w * 2 / 3, w / 3, SSD1306_BLACK);
-}
-
-void drawFrown(int16_t cx, int16_t cy, uint8_t w) {
-  // Downward curve
-  for (int8_t i = -1; i <= 1; i++) {
-    display.drawCircleHelper(cx, cy + w / 3 + i, w / 2, 0x01, SSD1306_WHITE);
-    display.drawCircleHelper(cx, cy + w / 3 + i, w / 2, 0x02, SSD1306_WHITE);
-  }
-}
-
-void drawNeutralMouth(int16_t cx, int16_t cy, uint8_t w) {
-  display.drawLine(cx - w / 2, cy, cx + w / 2, cy, SSD1306_WHITE);
-}
-
-void drawWavyMouth(int16_t cx, int16_t cy, uint8_t w) {
-  int16_t startX = cx - w / 2;
-  for (int16_t x = startX; x < startX + w; x += 4) {
-    int16_t y1 = cy + ((x - startX) % 8 < 4 ? -2 : 2);
-    int16_t y2 = cy + (((x + 2) - startX) % 8 < 4 ? -2 : 2);
-    display.drawLine(x, y1, x + 2, y2, SSD1306_WHITE);
-  }
-}
-
-void drawSleepMouth(int16_t cx, int16_t cy) {
-  // Small 'o' for sleeping
-  display.drawCircle(cx, cy, 3, SSD1306_WHITE);
-}
-
-void drawListenMouth(int16_t cx, int16_t cy) {
-  // Small open circle (attentive)
-  display.drawCircle(cx, cy + 2, 4, SSD1306_WHITE);
-  display.fillCircle(cx, cy + 2, 2, SSD1306_WHITE);
-}
-
-// ---------------------------------------------------------------------------
-// Decorative elements
-// ---------------------------------------------------------------------------
-void drawCheeks(int16_t lx, int16_t rx, int16_t y, uint8_t r) {
-  display.drawCircle(lx, y, r, SSD1306_WHITE);
-  display.drawCircle(rx, y, r, SSD1306_WHITE);
-}
-
-void drawTearDrop(int16_t x, int16_t y) {
-  display.fillCircle(x, y + 4, 2, SSD1306_WHITE);
-  display.drawLine(x, y, x - 1, y + 3, SSD1306_WHITE);
-  display.drawLine(x, y, x + 1, y + 3, SSD1306_WHITE);
-}
-
-void drawSweatDrop(int16_t x, int16_t y) {
-  display.drawCircle(x, y + 3, 2, SSD1306_WHITE);
-  display.drawLine(x, y, x, y + 1, SSD1306_WHITE);
-}
-
-void drawZzz(int16_t x, int16_t y) {
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(x, y);
-  display.print(F("Z"));
-  display.setCursor(x + 5, y - 7);
-  display.print(F("z"));
-  display.setCursor(x + 9, y - 12);
-  display.print(F("z"));
-}
-
-void drawSparkles(int16_t cx, int16_t cy) {
-  // Small crosses around the face
-  int16_t pts[][2] = {{cx - 30, cy - 22}, {cx + 30, cy - 22},
-                      {cx - 34, cy + 10}, {cx + 34, cy + 10}};
-  for (uint8_t i = 0; i < 4; i++) {
-    int16_t px = pts[i][0];
-    int16_t py = pts[i][1];
-    display.drawLine(px - 2, py, px + 2, py, SSD1306_WHITE);
-    display.drawLine(px, py - 2, px, py + 2, SSD1306_WHITE);
-  }
-}
-
-void drawSoundWaves(int16_t x, int16_t cy) {
-  display.drawCircleHelper(x, cy, 5, 0x06, SSD1306_WHITE);
-  display.drawCircleHelper(x, cy, 9, 0x06, SSD1306_WHITE);
-  display.drawCircleHelper(x, cy, 13, 0x06, SSD1306_WHITE);
-}
-
-// ---------------------------------------------------------------------------
-// Egg face (stage 0)
-// ---------------------------------------------------------------------------
-void drawEggFace(const String& emotion) {
-  int16_t cx = SCREEN_W / 2;
-  int16_t cy = SCREEN_H / 2;
-
-  // Egg outline
-  display.drawRoundRect(cx - 16, cy - 22, 32, 44, 14, SSD1306_WHITE);
-
-  // Tiny eyes
-  display.fillCircle(cx - 5, cy - 4, 2, SSD1306_WHITE);
-  display.fillCircle(cx + 5, cy - 4, 2, SSD1306_WHITE);
-
-  if (emotion == "happy") {
-    display.drawPixel(cx - 1, cy + 5, SSD1306_WHITE);
-    display.drawPixel(cx,     cy + 6, SSD1306_WHITE);
-    display.drawPixel(cx + 1, cy + 5, SSD1306_WHITE);
-  } else if (emotion == "sleeping") {
-    // Closed eyes
-    display.fillCircle(cx - 5, cy - 4, 2, SSD1306_BLACK);
-    display.fillCircle(cx + 5, cy - 4, 2, SSD1306_BLACK);
-    display.drawLine(cx - 7, cy - 4, cx - 3, cy - 4, SSD1306_WHITE);
-    display.drawLine(cx + 3, cy - 4, cx + 7, cy - 4, SSD1306_WHITE);
-    drawZzz(cx + 14, cy - 10);
-  } else {
-    // neutral dot mouth
-    display.drawPixel(cx, cy + 5, SSD1306_WHITE);
-  }
+  lcdPrintCentered(0, face);
+  lcdPrintCentered(1, label);
 }

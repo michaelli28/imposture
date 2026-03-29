@@ -1,4 +1,4 @@
-"""Rule engine for the Buddy AI Desk Pet.
+"""Rule engine for the Wamm AI Desk Pet.
 
 Manages user-defined behavioral rules (posture, phone, timer, custom)
 with JSON persistence. Rules are frozen dataclasses — updates produce

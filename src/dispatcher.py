@@ -1,8 +1,10 @@
-"""Arduino command dispatcher.
+"""Arduino command dispatcher for the Wamm AI Desk Pet.
 
 Translates pet state changes into serial commands for the Arduino body
 (OLED face, NeoPixel LEDs, buzzer, vibration motor).
 """
+
+from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
@@ -45,17 +47,15 @@ class Dispatcher:
     def __init__(self, serial_comm: "SerialComm") -> None:
         self._serial = serial_comm
         self._current_emotion: str = ""
-        self._current_stage: int = -1
 
-    def update_emotion(self, stage: int, emotion: str) -> None:
+    def update_emotion(self, emotion: str) -> None:
         """Send face, LED, buzzer, and vibration commands for the given emotion."""
-        face_changed = emotion != self._current_emotion or stage != self._current_stage
+        face_changed = emotion != self._current_emotion
         self._current_emotion = emotion
-        self._current_stage = stage
 
         if face_changed:
-            self._serial.send_face(stage, emotion)
-            logger.info("Dispatched face: stage=%d emotion=%s", stage, emotion)
+            self._serial.send_face(emotion)
+            logger.info("Dispatched face: emotion=%s", emotion)
 
         led_color, led_mode = EMOTION_LED_MAP.get(emotion, ((255, 255, 255), "solid"))
         self._serial.send_leds(*led_color, led_mode)
@@ -91,6 +91,7 @@ class Dispatcher:
 
     def alert_phone(self, severity: str) -> None:
         """Phone-specific alert based on rule severity."""
+        self._serial.send_text("(>_<)", "Phone Away!")
         if severity == "gentle":
             self._serial.send_buzz("short")
             self._serial.send_leds(255, 100, 0, "pulse")

@@ -1,4 +1,4 @@
-"""Serial communication between Raspberry Pi and Arduino for Buddy AI Desk Pet.
+"""Serial communication between Raspberry Pi and Arduino for Wamm AI Desk Pet.
 
 Handles bidirectional JSON-over-serial messaging: sends face/LED/buzzer
 commands to the Arduino and reads sensor data (light, temperature, button)
@@ -26,10 +26,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PORT: str = os.getenv("SERIAL_PORT", "")
 DEFAULT_BAUD: int = int(os.getenv("SERIAL_BAUD", "9600"))
-
-LIGHT_THRESHOLD: int = 200
-TEMP_COLD_THRESHOLD: float = 18.0
-TEMP_HOT_THRESHOLD: float = 28.0
 
 MAX_CONNECT_ATTEMPTS: int = 3
 RETRY_DELAY_SECONDS: float = 2.0
@@ -128,8 +124,8 @@ class SerialComm:
 
     # -- Convenience helpers --------------------------------------------------
 
-    def send_face(self, stage: int, emotion: str) -> bool:
-        return self.send_command({"cmd": "face", "stage": stage, "emotion": emotion})
+    def send_face(self, emotion: str) -> bool:
+        return self.send_command({"cmd": "face", "emotion": emotion})
 
     def send_leds(self, r: int, g: int, b: int, mode: str = "solid") -> bool:
         return self.send_command({"cmd": "leds", "r": r, "g": g, "b": b, "mode": mode})
@@ -141,7 +137,7 @@ class SerialComm:
         return self.send_command({"cmd": "vibrate", "duration": duration})
 
     def send_text(self, line1: str, line2: str = "") -> bool:
-        return self.send_command({"cmd": "text", "line1": line1, "line2": line2})
+        return self.send_command({"cmd": "display_text", "line1": line1, "line2": line2})
 
     # -- Background reader ----------------------------------------------------
 
@@ -188,22 +184,7 @@ class SerialComm:
         now = time.time()
         sensor = data.get("sensor")
 
-        if sensor == "light":
-            value = data.get("value", 0)
-            event_type = EventType.LIGHT_LOW if value < LIGHT_THRESHOLD else EventType.LIGHT_OK
-            self._bus.emit(Event(type=event_type, timestamp=now, data={"value": value}))
-
-        elif sensor == "temp":
-            value = data.get("value", 20.0)
-            if value < TEMP_COLD_THRESHOLD:
-                event_type = EventType.TEMP_COLD
-            elif value > TEMP_HOT_THRESHOLD:
-                event_type = EventType.TEMP_HOT
-            else:
-                event_type = EventType.TEMP_OK
-            self._bus.emit(Event(type=event_type, timestamp=now, data={"value": value}))
-
-        elif sensor == "button":
+        if sensor == "button":
             self._bus.emit(Event(type=EventType.BUTTON_PRESS, timestamp=now, data=data))
 
         else:

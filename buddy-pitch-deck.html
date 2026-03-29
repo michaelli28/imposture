@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buddy — AI Desk Pet | YHack 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================================
+   VIEWPORT FITTING: MANDATORY BASE STYLES
+   =========================================== */
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+}
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+.slide {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.slide-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-height: 100%;
+    overflow: hidden;
+    padding: var(--slide-padding);
+}
+:root {
+    --title-size: clamp(1.5rem, 5vw, 4rem);
+    --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+    --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+    --body-size: clamp(0.75rem, 1.5vw, 1.125rem);
+    --small-size: clamp(0.65rem, 1vw, 0.875rem);
+    --slide-padding: clamp(1rem, 4vw, 4rem);
+    --content-gap: clamp(0.5rem, 2vw, 2rem);
+    --element-gap: clamp(0.25rem, 1vw, 1rem);
+
+    /* Brand palette */
+    --orange: #F97316;
+    --orange-light: #FB923C;
+    --orange-dark: #EA580C;
+    --cream: #FFF7ED;
+    --cream-dark: #FED7AA;
+    --charcoal: #1E293B;
+    --charcoal-light: #334155;
+    --navy: #0F172A;
+    --red: #EF4444;
+    --green: #22C55E;
+    --blue: #3B82F6;
+    --purple: #8B5CF6;
+    --cyan: #06B6D4;
+}
+.card, .container, .content-box {
+    max-width: min(90vw, 1000px);
+    max-height: min(80vh, 700px);
+}
+.feature-list, .bullet-list {
+    gap: clamp(0.4rem, 1vh, 1rem);
+}
+.feature-list li, .bullet-list li {
+    font-size: var(--body-size);
+    line-height: 1.4;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: clamp(0.5rem, 1.5vw, 1rem);
+}
+@media (max-height: 700px) {
+    :root {
+        --slide-padding: clamp(0.75rem, 3vw, 2rem);
+        --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+        --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+        --h2-size: clamp(1rem, 3vw, 1.75rem);
+    }
+}
+@media (max-height: 600px) {
+    :root {
+        --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+        --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+        --title-size: clamp(1.1rem, 4vw, 2rem);
+        --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+    }
+    .nav-dots, .keyboard-hint, .decorative { display: none; }
+}
+@media (max-height: 500px) {
+    :root {
+        --slide-padding: clamp(0.4rem, 2vw, 1rem);
+        --title-size: clamp(1rem, 3.5vw, 1.5rem);
+        --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+        --body-size: clamp(0.65rem, 1vw, 0.85rem);
+    }
+}
+@media (max-width: 600px) {
+    :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+    .grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ===========================================
+   THEME STYLES
+   =========================================== */
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Nunito Sans', sans-serif;
+    color: var(--cream);
+    background: var(--navy);
+}
+
+h1, h2, h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.1;
+}
+
+h1 { font-size: var(--title-size); }
+h2 { font-size: var(--h2-size); }
+h3 { font-size: var(--h3-size); }
+p { font-size: var(--body-size); margin: 0; line-height: 1.5; }
+
+.mono {
+    font-family: 'Space Mono', monospace;
+}
+
+/* Slide variants */
+.slide--dark {
+    background: var(--navy);
+    color: var(--cream);
+}
+.slide--cream {
+    background: var(--cream);
+    color: var(--charcoal);
+}
+.slide--orange {
+    background: var(--orange);
+    color: white;
+}
+.slide--charcoal {
+    background: var(--charcoal);
+    color: var(--cream);
+}
+
+/* Section number */
+.section-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(3rem, 10vw, 8rem);
+    position: absolute;
+    top: clamp(0.5rem, 2vw, 1.5rem);
+    right: clamp(1rem, 4vw, 3rem);
+    opacity: 0.08;
+    line-height: 1;
+    color: currentColor;
+}
+
+/* Tag / badge */
+.tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: var(--small-size);
+    padding: clamp(0.2rem, 0.5vw, 0.35rem) clamp(0.5rem, 1vw, 0.75rem);
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+.tag--orange { background: var(--orange); color: white; }
+.tag--red { background: var(--red); color: white; }
+.tag--green { background: var(--green); color: var(--navy); }
+.tag--blue { background: var(--blue); color: white; }
+.tag--purple { background: var(--purple); color: white; }
+.tag--outline {
+    background: transparent;
+    border: 2px solid currentColor;
+    color: currentColor;
+}
+
+/* Stat card */
+.stat-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: clamp(8px, 1.5vw, 16px);
+    padding: clamp(0.6rem, 1.5vw, 1.25rem);
+    text-align: center;
+}
+.stat-card .stat-number {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    color: var(--orange);
+    line-height: 1.1;
+}
+.stat-card .stat-label {
+    font-size: var(--small-size);
+    opacity: 0.7;
+    margin-top: clamp(0.15rem, 0.5vw, 0.35rem);
+}
+
+/* Stat card on cream */
+.slide--cream .stat-card {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+/* Feature card */
+.feature-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: clamp(8px, 1.5vw, 14px);
+    padding: clamp(0.6rem, 1.5vw, 1.25rem);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.25rem, 0.5vw, 0.5rem);
+}
+.feature-card .feature-icon {
+    font-size: clamp(1.2rem, 2.5vw, 2rem);
+    line-height: 1;
+}
+.feature-card h3 {
+    font-size: clamp(0.8rem, 1.8vw, 1.15rem);
+}
+.feature-card p {
+    font-size: var(--small-size);
+    opacity: 0.75;
+    line-height: 1.4;
+}
+
+/* Slide on cream - feature cards */
+.slide--cream .feature-card {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+/* Problem bullet */
+.problem-row {
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(0.5rem, 1.5vw, 1rem);
+    padding: clamp(0.4rem, 1vw, 0.75rem) 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.problem-row:last-child { border-bottom: none; }
+.problem-row .problem-stat {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.1rem, 2.5vw, 1.75rem);
+    color: var(--orange);
+    min-width: clamp(3rem, 8vw, 6rem);
+    flex-shrink: 0;
+    text-align: right;
+}
+.problem-row .problem-text {
+    font-size: var(--body-size);
+    opacity: 0.85;
+}
+.problem-row .problem-source {
+    font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+    opacity: 0.45;
+    font-family: 'Space Mono', monospace;
+}
+
+/* Comparison table */
+.compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(0.5rem, 1.5vw, 1.25rem);
+}
+.compare-col {
+    border-radius: clamp(8px, 1.5vw, 14px);
+    padding: clamp(0.6rem, 1.5vw, 1.25rem);
+}
+.compare-col--bad {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.compare-col--good {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.compare-col h3 {
+    font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+    margin-bottom: clamp(0.3rem, 0.8vw, 0.6rem);
+}
+.compare-item {
+    font-size: var(--small-size);
+    padding: clamp(0.2rem, 0.4vw, 0.3rem) 0;
+    opacity: 0.85;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4em;
+}
+
+/* ASCII pet */
+.pet-ascii {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(2rem, 6vw, 5rem);
+    text-align: center;
+    line-height: 1;
+}
+
+/* Architecture flow */
+.flow-step {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.3rem, 1vw, 0.75rem);
+    font-size: var(--small-size);
+}
+.flow-arrow {
+    font-family: 'Space Mono', monospace;
+    color: var(--orange);
+    font-weight: 700;
+    font-size: var(--body-size);
+}
+
+/* Progress indicator */
+.progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--orange);
+    z-index: 1000;
+    transition: width 0.3s ease;
+}
+
+/* Navigation dots */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.5rem, 1.5vw, 1rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 0.5vw, 8px);
+    z-index: 100;
+}
+.nav-dot {
+    width: clamp(6px, 0.6vw, 10px);
+    height: clamp(6px, 0.6vw, 10px);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0;
+}
+.nav-dot.active {
+    background: var(--orange);
+    transform: scale(1.4);
+}
+
+/* Keyboard hint */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.5rem, 1.5vw, 1rem);
+    right: clamp(0.5rem, 1.5vw, 1rem);
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.55rem, 0.7vw, 0.7rem);
+    opacity: 0.3;
+    z-index: 100;
+    color: var(--cream);
+}
+
+/* Reveal animation */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* Decorative elements */
+.bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: clamp(30px, 4vw, 60px) clamp(30px, 4vw, 60px);
+    pointer-events: none;
+}
+
+.bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(clamp(40px, 8vw, 100px));
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+/* Tech chip */
+.tech-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-family: 'Space Mono', monospace;
+    font-size: var(--small-size);
+    padding: clamp(0.2rem, 0.4vw, 0.3rem) clamp(0.4rem, 0.8vw, 0.6rem);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+/* Timeline */
+.timeline-row {
+    display: grid;
+    grid-template-columns: clamp(2rem, 5vw, 4rem) 2px 1fr;
+    gap: clamp(0.4rem, 1vw, 0.75rem);
+    align-items: start;
+}
+.timeline-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1rem, 2vw, 1.5rem);
+    color: var(--orange);
+    text-align: right;
+}
+.timeline-line {
+    background: rgba(255,255,255,0.15);
+    min-height: 100%;
+    border-radius: 1px;
+}
+.timeline-content h3 {
+    font-size: clamp(0.8rem, 1.5vw, 1rem);
+}
+.timeline-content p {
+    font-size: var(--small-size);
+    opacity: 0.7;
+}
+
+/* Slide counter */
+.slide-counter {
+    position: fixed;
+    bottom: clamp(0.5rem, 1.5vw, 1rem);
+    left: clamp(0.5rem, 1.5vw, 1rem);
+    font-family: 'Space Mono', monospace;
+    font-size: var(--small-size);
+    opacity: 0.35;
+    z-index: 100;
+    color: var(--cream);
+}
+
+/* Two column layout */
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(1rem, 3vw, 2.5rem);
+    align-items: center;
+}
+@media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+    .compare-grid { grid-template-columns: 1fr; }
+}
+
+/* Centered content wrapper */
+.centered {
+    max-width: min(90vw, 900px);
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Subtitle */
+.subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: var(--body-size);
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: clamp(0.3rem, 1vw, 0.75rem);
+}
+
+/* Impact row on cream */
+.slide--cream .problem-row {
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+.slide--cream .problem-row .problem-stat {
+    color: var(--orange-dark);
+}
+
+/* Track card */
+.track-card {
+    background: rgba(249, 115, 22, 0.08);
+    border: 1px solid rgba(249, 115, 22, 0.2);
+    border-radius: clamp(8px, 1.5vw, 14px);
+    padding: clamp(0.5rem, 1.2vw, 1rem);
+}
+.track-card h3 {
+    font-size: clamp(0.8rem, 1.5vw, 1rem);
+    color: var(--orange);
+}
+.track-card p {
+    font-size: var(--small-size);
+    opacity: 0.7;
+}
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Nav dots -->
+<nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+<!-- Slide counter -->
+<div class="slide-counter" id="slideCounter"></div>
+
+<!-- Keyboard hint -->
+<div class="keyboard-hint">Arrow keys / scroll to navigate</div>
+
+<!-- ===== SLIDE 1: TITLE ===== -->
+<section class="slide slide--dark" data-slide="0">
+    <div class="bg-grid"></div>
+    <div class="bg-blob" style="width:clamp(200px,40vw,500px);height:clamp(200px,40vw,500px);background:var(--orange);top:-10%;right:-10%;"></div>
+    <div class="bg-blob" style="width:clamp(150px,30vw,400px);height:clamp(150px,30vw,400px);background:var(--blue);bottom:-15%;left:-5%;"></div>
+    <div class="slide-content" style="align-items:center;text-align:center;">
+        <div class="reveal">
+            <div class="pet-ascii" style="margin-bottom:clamp(0.5rem,2vw,1.5rem);">(^_^)</div>
+        </div>
+        <h1 class="reveal reveal-delay-1" style="font-size:clamp(2.5rem,8vw,6rem);letter-spacing:-0.03em;">BUDDY</h1>
+        <p class="reveal reveal-delay-2" style="font-size:clamp(0.9rem,2vw,1.4rem);max-width:min(80vw,600px);opacity:0.7;margin-top:clamp(0.3rem,1vw,0.75rem);">
+            Your AI Desk Pet That Watches Your Back
+        </p>
+        <div class="reveal reveal-delay-3" style="display:flex;gap:clamp(0.3rem,0.8vw,0.5rem);flex-wrap:wrap;justify-content:center;margin-top:clamp(0.5rem,1.5vw,1rem);">
+            <span class="tag tag--orange">YHack 2026</span>
+            <span class="tag tag--outline">Hardware</span>
+            <span class="tag tag--outline">Societal Impact</span>
+        </div>
+        <p class="mono reveal reveal-delay-4" style="font-size:var(--small-size);opacity:0.35;margin-top:clamp(0.5rem,2vw,1.5rem);">
+            Raspberry Pi 4B + Arduino UNO + Computer Vision + Voice AI
+        </p>
+    </div>
+</section>
+
+<!-- ===== SLIDE 2: THE PROBLEM ===== -->
+<section class="slide slide--dark" data-slide="1">
+    <span class="section-num">01</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">The Problem</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.5rem,1.5vw,1rem);">Desk work is breaking our bodies, focus, and mental health.</h2>
+            <p class="reveal reveal-delay-2" style="opacity:0.6;margin-bottom:clamp(0.75rem,2vw,1.5rem);">
+                We sit 8+ hours a day, check our phones 47 times at work, and 66% of us are burnt out. The problem isn't laziness. It's that no one is watching out for us.
+            </p>
+            <div class="grid reveal reveal-delay-3" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));">
+                <div class="stat-card">
+                    <div class="stat-number">$88B</div>
+                    <div class="stat-label">annual cost of back &amp; neck pain in the U.S.</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">80%</div>
+                    <div class="stat-label">of office workers suffer musculoskeletal disorders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">23 min</div>
+                    <div class="stat-label">to refocus after one phone interruption</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">66%</div>
+                    <div class="stat-label">of American workers report burnout</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 3: POSTURE CRISIS ===== -->
+<section class="slide slide--dark" data-slide="2">
+    <span class="section-num">02</span>
+    <div class="bg-grid"></div>
+    <div class="bg-blob" style="width:clamp(200px,35vw,450px);height:clamp(200px,35vw,450px);background:var(--red);bottom:-20%;right:-10%;opacity:0.1;"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">The Posture Crisis</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.5rem);">Your spine doesn't have a notification system.</h2>
+            <div style="display:flex;flex-direction:column;gap:clamp(0.2rem,0.5vw,0.4rem);">
+                <div class="problem-row reveal reveal-delay-1">
+                    <div class="problem-stat">8-9 hrs</div>
+                    <div>
+                        <div class="problem-text">Average daily sedentary time for desk workers</div>
+                        <div class="problem-source">Multiple studies, 2025</div>
+                    </div>
+                </div>
+                <div class="problem-row reveal reveal-delay-2">
+                    <div class="problem-stat">58.6%</div>
+                    <div>
+                        <div class="problem-text">Office workers with chronic neck pain</div>
+                        <div class="problem-source">Nature, 2025</div>
+                    </div>
+                </div>
+                <div class="problem-row reveal reveal-delay-3">
+                    <div class="problem-stat">186.7M</div>
+                    <div>
+                        <div class="problem-text">Workdays lost to back pain annually in the U.S.</div>
+                        <div class="problem-source">PMC / IHME</div>
+                    </div>
+                </div>
+                <div class="problem-row reveal reveal-delay-4">
+                    <div class="problem-stat">$2,000</div>
+                    <div>
+                        <div class="problem-text">Direct medical cost per patient per year for posture-related pain</div>
+                        <div class="problem-source">PMC, 2024</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 4: DISTRACTION EPIDEMIC ===== -->
+<section class="slide slide--dark" data-slide="3">
+    <span class="section-num">03</span>
+    <div class="bg-grid"></div>
+    <div class="bg-blob" style="width:clamp(200px,35vw,450px);height:clamp(200px,35vw,450px);background:var(--purple);top:-15%;left:-10%;opacity:0.1;"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">The Distraction Epidemic</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.5rem);">Your phone is the most expensive distraction you own.</h2>
+            <div style="display:flex;flex-direction:column;gap:clamp(0.2rem,0.5vw,0.4rem);">
+                <div class="problem-row reveal reveal-delay-1">
+                    <div class="problem-stat">47x</div>
+                    <div>
+                        <div class="problem-text">Average daily phone checks at work</div>
+                        <div class="problem-source">Gitnux, 2024</div>
+                    </div>
+                </div>
+                <div class="problem-row reveal reveal-delay-2">
+                    <div class="problem-stat">40%</div>
+                    <div>
+                        <div class="problem-text">Productive time lost to context switching every day</div>
+                        <div class="problem-source">ProductivityReport.org, 2025</div>
+                    </div>
+                </div>
+                <div class="problem-row reveal reveal-delay-3">
+                    <div class="problem-stat">82%</div>
+                    <div>
+                        <div class="problem-text">College students who believe they're addicted to their phone</div>
+                        <div class="problem-source">PMC, 2025</div>
+                    </div>
+                </div>
+                <div class="problem-row reveal reveal-delay-4">
+                    <div class="problem-stat">$15.5B</div>
+                    <div>
+                        <div class="problem-text">Annual cost of phone distraction to U.S. employers</div>
+                        <div class="problem-source">Gitnux / WiFiTalents</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 5: MENTAL HEALTH ===== -->
+<section class="slide slide--dark" data-slide="4">
+    <span class="section-num">04</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">The Hidden Toll</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.5rem);">Burnout, loneliness, and desk work form a vicious cycle.</h2>
+            <div class="grid reveal reveal-delay-2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));">
+                <div class="stat-card">
+                    <div class="stat-number">66%</div>
+                    <div class="stat-label">Gen Z reports burnout &mdash; highest of any generation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">79%</div>
+                    <div class="stat-label">of 18-26 year-olds feel lonely &ldquo;often or sometimes&rdquo;</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">95%</div>
+                    <div class="stat-label">of pet owners rely on their pet for stress relief</div>
+                </div>
+            </div>
+            <p class="reveal reveal-delay-3" style="text-align:center;opacity:0.6;margin-top:clamp(0.5rem,1.5vw,1rem);font-size:var(--body-size);">
+                Research shows upright posture increases positive affect and lowers cortisol.<br>
+                Virtual pets significantly reduce mental stress and induce positive emotions.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 6: EXISTING SOLUTIONS FAIL ===== -->
+<section class="slide slide--dark" data-slide="5">
+    <span class="section-num">05</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">Why Current Solutions Fail</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.25rem);">Wearables get abandoned. Apps get ignored.</h2>
+            <div class="compare-grid reveal reveal-delay-2">
+                <div class="compare-col compare-col--bad">
+                    <h3 style="color:var(--red);">Posture Wearables</h3>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> 50% abandoned, 1/3 within 6 months</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> Physical braces weaken muscles</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> Miss forward head posture</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> No published validation trials</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> Single-purpose, no emotional hook</div>
+                </div>
+                <div class="compare-col compare-col--bad">
+                    <h3 style="color:var(--red);">Productivity Apps</h3>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> 70% drop off within 100 days</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> Only 7% retention at Day 30</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> 25% abandoned after first use</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> Notification fatigue drives uninstalls</div>
+                    <div class="compare-item"><span style="color:var(--red);">&#10005;</span> No fun, no personality, no bond</div>
+                </div>
+            </div>
+            <p class="reveal reveal-delay-3 mono" style="text-align:center;opacity:0.5;margin-top:clamp(0.4rem,1vw,0.75rem);font-size:var(--small-size);">
+                The missing ingredient: emotional attachment that makes you <em>want</em> to keep going.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 7: MEET BUDDY ===== -->
+<section class="slide slide--orange" data-slide="6">
+    <div class="bg-grid" style="background-image:linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px);"></div>
+    <div class="slide-content" style="align-items:center;text-align:center;">
+        <div class="reveal">
+            <div class="pet-ascii" style="margin-bottom:clamp(0.5rem,2vw,1rem);font-size:clamp(3rem,8vw,7rem);">(^_^)</div>
+        </div>
+        <h2 class="reveal reveal-delay-1" style="font-size:clamp(2rem,6vw,4.5rem);letter-spacing:-0.02em;">Meet Buddy.</h2>
+        <p class="reveal reveal-delay-2" style="font-size:clamp(0.9rem,2vw,1.4rem);max-width:min(80vw,650px);margin-top:clamp(0.3rem,1vw,0.75rem);opacity:0.9;">
+            A Tamagotchi-style AI desk pet that lives on your desk, watches your posture, guards against phone distractions, and grows when you stay focused.
+        </p>
+        <p class="reveal reveal-delay-3" style="font-size:var(--body-size);max-width:min(80vw,500px);margin-top:clamp(0.3rem,1vw,0.75rem);opacity:0.75;">
+            You don't just use Buddy. You take care of Buddy. And Buddy takes care of you.
+        </p>
+    </div>
+</section>
+
+<!-- ===== SLIDE 8: HOW IT WORKS ===== -->
+<section class="slide slide--dark" data-slide="7">
+    <span class="section-num">06</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">How It Works</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.25rem);">Two brains, one companion.</h2>
+            <div class="two-col reveal reveal-delay-2">
+                <div>
+                    <div style="display:flex;flex-direction:column;gap:clamp(0.5rem,1.2vw,0.8rem);">
+                        <div class="timeline-row">
+                            <div class="timeline-num">1</div>
+                            <div class="timeline-line"></div>
+                            <div class="timeline-content">
+                                <h3>See</h3>
+                                <p>Webcam + MediaPipe analyzes posture &amp; phone usage at 1 FPS</p>
+                            </div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-num">2</div>
+                            <div class="timeline-line"></div>
+                            <div class="timeline-content">
+                                <h3>Think</h3>
+                                <p>LLM processes voice commands, pet personality shapes responses</p>
+                            </div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-num">3</div>
+                            <div class="timeline-line"></div>
+                            <div class="timeline-content">
+                                <h3>React</h3>
+                                <p>OLED face, LED ring, buzzer, and voice express Buddy's emotions</p>
+                            </div>
+                        </div>
+                        <div class="timeline-row">
+                            <div class="timeline-num">4</div>
+                            <div class="timeline-line"></div>
+                            <div class="timeline-content">
+                                <h3>Grow</h3>
+                                <p>Good habits earn XP. Buddy evolves from Egg to Adult over time.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:clamp(0.3rem,1vw,0.75rem);">
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:clamp(10px,2vw,20px);padding:clamp(0.8rem,2vw,1.5rem);text-align:center;width:100%;">
+                        <div style="font-size:var(--small-size);opacity:0.5;margin-bottom:0.3em;" class="mono">RASPBERRY PI 4B</div>
+                        <div style="font-size:var(--body-size);">CV &bull; STT &bull; LLM &bull; TTS &bull; Web</div>
+                        <div style="font-size:clamp(1.5rem,3vw,2.5rem);color:var(--orange);margin:clamp(0.3rem,0.8vw,0.5rem) 0;">&#8597;</div>
+                        <div style="font-size:var(--small-size);opacity:0.5;" class="mono">USB SERIAL / JSON</div>
+                        <div style="font-size:clamp(1.5rem,3vw,2.5rem);color:var(--orange);margin:clamp(0.3rem,0.8vw,0.5rem) 0;">&#8597;</div>
+                        <div style="font-size:var(--small-size);opacity:0.5;margin-bottom:0.3em;" class="mono">ARDUINO UNO R3</div>
+                        <div style="font-size:var(--body-size);">OLED &bull; LEDs &bull; Buzzer &bull; Motor</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 9: FEATURES GRID ===== -->
+<section class="slide slide--dark" data-slide="8">
+    <span class="section-num">07</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">Core Features</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.25rem);">Everything a desk companion should do.</h2>
+            <div class="grid reveal reveal-delay-2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));">
+                <div class="feature-card">
+                    <div class="feature-icon">&#128064;</div>
+                    <h3>Posture Watch</h3>
+                    <p>MediaPipe scores your spine angle, neck position, shoulder level, and head tilt in real-time. 86% of users improve with feedback.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128242;</div>
+                    <h3>Phone Guard</h3>
+                    <p>Object detection spots your phone. Buddy gets upset if you're distracted. 5-second grace period, then consequences.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#127911;</div>
+                    <h3>Voice Commands</h3>
+                    <p>"Hey Buddy, start a 25-minute focus session." Wake word runs locally. STT + LLM + TTS for natural conversation.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#127793;</div>
+                    <h3>Pet Growth</h3>
+                    <p>5 stages from Egg to Adult. +1 XP per focus minute, -5 for bad posture, -10 for phone. Your habits shape Buddy's life.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128161;</div>
+                    <h3>Smart Alerts</h3>
+                    <p>OLED face, NeoPixel LED ring, buzzer melodies, and haptic vibration express 8 different emotions contextually.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128202;</div>
+                    <h3>Live Dashboard</h3>
+                    <p>Real-time WebSocket UI shows pet status, posture score, rules, focus history, and live camera feed.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 10: THE GAMIFICATION ENGINE ===== -->
+<section class="slide slide--charcoal" data-slide="9">
+    <span class="section-num">08</span>
+    <div class="bg-grid"></div>
+    <div class="bg-blob" style="width:clamp(200px,35vw,450px);height:clamp(200px,35vw,450px);background:var(--green);bottom:-20%;left:-10%;opacity:0.08;"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">Why It Works</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.5rem,1.5vw,1rem);">Gamification backed by science.</h2>
+            <div class="two-col reveal reveal-delay-2">
+                <div>
+                    <div style="display:flex;flex-direction:column;gap:clamp(0.4rem,1vw,0.75rem);">
+                        <div style="display:flex;align-items:center;gap:clamp(0.4rem,1vw,0.75rem);">
+                            <div class="pet-ascii" style="font-size:clamp(1.5rem,3vw,2.5rem);min-width:3em;text-align:center;">( . )</div>
+                            <div>
+                                <div style="font-size:var(--body-size);font-weight:700;">Egg</div>
+                                <div style="font-size:var(--small-size);opacity:0.6;">0 XP &mdash; Just getting started</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:clamp(0.4rem,1vw,0.75rem);">
+                            <div class="pet-ascii" style="font-size:clamp(1.5rem,3vw,2.5rem);min-width:3em;text-align:center;">('.')</div>
+                            <div>
+                                <div style="font-size:var(--body-size);font-weight:700;">Hatchling</div>
+                                <div style="font-size:var(--small-size);opacity:0.6;">15 XP &mdash; Learning habits</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:clamp(0.4rem,1vw,0.75rem);">
+                            <div class="pet-ascii" style="font-size:clamp(1.5rem,3vw,2.5rem);min-width:3em;text-align:center;">(o_o)</div>
+                            <div>
+                                <div style="font-size:var(--body-size);font-weight:700;">Kid</div>
+                                <div style="font-size:var(--small-size);opacity:0.6;">60 XP &mdash; Building routine</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:clamp(0.4rem,1vw,0.75rem);">
+                            <div class="pet-ascii" style="font-size:clamp(1.5rem,3vw,2.5rem);min-width:3em;text-align:center;">(^o^)</div>
+                            <div>
+                                <div style="font-size:var(--body-size);font-weight:700;">Teen</div>
+                                <div style="font-size:var(--small-size);opacity:0.6;">180 XP &mdash; Getting stronger</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:clamp(0.4rem,1vw,0.75rem);">
+                            <div class="pet-ascii" style="font-size:clamp(1.5rem,3vw,2.5rem);min-width:3em;text-align:center;">(^_^)</div>
+                            <div>
+                                <div style="font-size:var(--body-size);font-weight:700;">Adult</div>
+                                <div style="font-size:var(--small-size);opacity:0.6;">360 XP &mdash; Fully grown!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:clamp(8px,1.5vw,14px);padding:clamp(0.6rem,1.5vw,1.25rem);">
+                        <h3 style="font-size:clamp(0.85rem,1.5vw,1.1rem);color:var(--orange);margin-bottom:clamp(0.3rem,0.8vw,0.5rem);">The Research Says:</h3>
+                        <div style="display:flex;flex-direction:column;gap:clamp(0.3rem,0.8vw,0.5rem);">
+                            <p style="font-size:var(--small-size);">
+                                <strong style="color:var(--green);">Gamification effect size: g = 0.74</strong><br>
+                                <span style="opacity:0.6;">Medium-to-large behavioral impact in meta-analysis</span>
+                            </p>
+                            <p style="font-size:var(--small-size);">
+                                <strong style="color:var(--green);">Tamagotchi Effect is real</strong><br>
+                                <span style="opacity:0.6;">Emotional attachment to digital creatures drives sustained care behavior</span>
+                            </p>
+                            <p style="font-size:var(--small-size);">
+                                <strong style="color:var(--green);">5 minutes with a pet reduces cortisol</strong><br>
+                                <span style="opacity:0.6;">Even virtual pets lower stress hormones measurably</span>
+                            </p>
+                            <p style="font-size:var(--small-size);">
+                                <strong style="color:var(--green);">Short-term gamification: effect size 1.57</strong><br>
+                                <span style="opacity:0.6;">Especially effective for building new habits</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 11: TECH STACK ===== -->
+<section class="slide slide--dark" data-slide="10">
+    <span class="section-num">09</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">Tech Stack</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.25rem);">Built with intention, not bloat.</h2>
+            <div class="grid reveal reveal-delay-2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));">
+                <div class="feature-card">
+                    <h3 style="color:var(--orange);">Vision &amp; Sensing</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:clamp(0.2rem,0.5vw,0.35rem);">
+                        <span class="tech-chip">MediaPipe Pose</span>
+                        <span class="tech-chip">EfficientDet</span>
+                        <span class="tech-chip">OpenCV</span>
+                        <span class="tech-chip">USB Webcam</span>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <h3 style="color:var(--orange);">Voice AI</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:clamp(0.2rem,0.5vw,0.35rem);">
+                        <span class="tech-chip">OpenWakeWord</span>
+                        <span class="tech-chip">Deepgram STT</span>
+                        <span class="tech-chip">ElevenLabs TTS</span>
+                        <span class="tech-chip">Lava LLM</span>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <h3 style="color:var(--orange);">Hardware</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:clamp(0.2rem,0.5vw,0.35rem);">
+                        <span class="tech-chip">Raspberry Pi 4B</span>
+                        <span class="tech-chip">Arduino UNO</span>
+                        <span class="tech-chip">OLED Display</span>
+                        <span class="tech-chip">NeoPixel Ring</span>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <h3 style="color:var(--orange);">Software</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:clamp(0.2rem,0.5vw,0.35rem);">
+                        <span class="tech-chip">Python 3.12</span>
+                        <span class="tech-chip">FastAPI</span>
+                        <span class="tech-chip">WebSocket</span>
+                        <span class="tech-chip">EventBus</span>
+                    </div>
+                </div>
+            </div>
+            <p class="reveal reveal-delay-3 mono" style="text-align:center;opacity:0.4;margin-top:clamp(0.5rem,1.5vw,1rem);font-size:var(--small-size);">
+                Local wake word + 1 FPS CV = low CPU usage. All inference on-device except STT/TTS/LLM APIs.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 12: DEMO INTERACTION ===== -->
+<section class="slide slide--charcoal" data-slide="11">
+    <span class="section-num">10</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">A Day With Buddy</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.25rem);">Real interactions, real behavior change.</h2>
+            <div style="display:flex;flex-direction:column;gap:clamp(0.4rem,1vw,0.75rem);" class="reveal reveal-delay-2">
+                <div style="background:rgba(255,255,255,0.04);border-radius:clamp(8px,1.5vw,12px);padding:clamp(0.5rem,1.2vw,0.8rem);border-left:3px solid var(--orange);">
+                    <div style="font-size:var(--small-size);opacity:0.5;" class="mono">9:00 AM &mdash; You sit down to work</div>
+                    <div style="font-size:var(--body-size);">"Hey Buddy, don't let me go on my phone for 25 minutes."</div>
+                    <div style="font-size:var(--small-size);color:var(--green);">Buddy: (^_^) "You got this! I'll keep watch." &bull; LEDs turn green &bull; Timer starts</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.04);border-radius:clamp(8px,1.5vw,12px);padding:clamp(0.5rem,1.2vw,0.8rem);border-left:3px solid var(--red);">
+                    <div style="font-size:var(--small-size);opacity:0.5;" class="mono">9:12 AM &mdash; You slouch forward</div>
+                    <div style="font-size:var(--body-size);">Posture score drops below threshold for 5 seconds</div>
+                    <div style="font-size:var(--small-size);color:var(--red);">Buddy: (T_T) &bull; LEDs pulse blue &bull; Buzzer chirps &bull; -5 XP &bull; "Sit up straight, I believe in you!"</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.04);border-radius:clamp(8px,1.5vw,12px);padding:clamp(0.5rem,1.2vw,0.8rem);border-left:3px solid var(--green);">
+                    <div style="font-size:var(--small-size);opacity:0.5;" class="mono">9:25 AM &mdash; Timer ends</div>
+                    <div style="font-size:var(--body-size);">25 minutes of focus completed!</div>
+                    <div style="font-size:var(--small-size);color:var(--green);">Buddy: (^o^) &bull; Rainbow LEDs &bull; Celebration melody &bull; +25 XP &bull; STAGE UP!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 13: SOCIETAL IMPACT ===== -->
+<section class="slide slide--cream" data-slide="12">
+    <span class="section-num">11</span>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal" style="color:var(--orange-dark);">Societal Impact</p>
+            <h2 class="reveal reveal-delay-1">Why this matters beyond the hackathon.</h2>
+            <div class="grid reveal reveal-delay-2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));margin-top:clamp(0.5rem,1.5vw,1rem);">
+                <div class="feature-card">
+                    <h3 style="color:var(--orange-dark);">Physical Health</h3>
+                    <p>Real-time posture correction could prevent the $88B/year burden of back and neck pain. 86% of users improve posture with consistent feedback.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 style="color:var(--orange-dark);">Digital Wellness</h3>
+                    <p>Confronting phone addiction through awareness, not restriction. Buddy makes you conscious of habits you didn't know you had.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 style="color:var(--orange-dark);">Mental Health</h3>
+                    <p>A desk companion that provides emotional presence. The Tamagotchi effect creates reciprocal care: you grow Buddy, Buddy grows you.</p>
+                </div>
+                <div class="feature-card">
+                    <h3 style="color:var(--orange-dark);">Accessibility</h3>
+                    <p>Built on $100 of commodity hardware. No subscription. No wearable. Just a webcam, a Pi, and an Arduino on your desk.</p>
+                </div>
+            </div>
+            <p class="reveal reveal-delay-3" style="text-align:center;opacity:0.55;margin-top:clamp(0.4rem,1vw,0.75rem);font-size:var(--small-size);font-style:italic;">
+                "Self-love through self-care" &mdash; YHack 2026 Theme
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 14: TRACKS ===== -->
+<section class="slide slide--dark" data-slide="13">
+    <span class="section-num">12</span>
+    <div class="bg-grid"></div>
+    <div class="slide-content">
+        <div class="centered">
+            <p class="subtitle reveal">Track Submissions</p>
+            <h2 class="reveal reveal-delay-1" style="margin-bottom:clamp(0.75rem,2vw,1.25rem);">Built for multiple tracks.</h2>
+            <div class="grid reveal reveal-delay-2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));">
+                <div class="track-card">
+                    <div style="display:flex;align-items:center;gap:0.5em;margin-bottom:clamp(0.2rem,0.5vw,0.3rem);">
+                        <span class="tag tag--orange" style="font-size:clamp(0.5rem,0.7vw,0.65rem);">PRIMARY</span>
+                    </div>
+                    <h3>Hardware Track (QNX)</h3>
+                    <p>Physical device: Pi 4B + Arduino UNO + OLED + LEDs + sensors in 3D-printed case</p>
+                </div>
+                <div class="track-card">
+                    <div style="display:flex;align-items:center;gap:0.5em;margin-bottom:clamp(0.2rem,0.5vw,0.3rem);">
+                        <span class="tag tag--orange" style="font-size:clamp(0.5rem,0.7vw,0.65rem);">PRIMARY</span>
+                    </div>
+                    <h3>Societal Impact (ASUS)</h3>
+                    <p>Posture health, phone addiction awareness, mental wellness through gamification</p>
+                </div>
+                <div class="track-card">
+                    <h3>Best Use of Lava API</h3>
+                    <p>LLM-powered pet personality and voice interaction via Lava gateway</p>
+                </div>
+                <div class="track-card">
+                    <h3>Best Use of ElevenLabs</h3>
+                    <p>Streaming TTS gives Buddy a real voice with eleven_turbo_v2</p>
+                </div>
+                <div class="track-card">
+                    <h3>Most Creative Hack</h3>
+                    <p>A Tamagotchi that uses computer vision to watch your habits</p>
+                </div>
+                <div class="track-card">
+                    <h3>Most on Theme</h3>
+                    <p>"Self-love through self-care" &mdash; literally a pet that cares about your health</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SLIDE 15: THANK YOU ===== -->
+<section class="slide slide--orange" data-slide="14">
+    <div class="bg-grid" style="background-image:linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px);"></div>
+    <div class="slide-content" style="align-items:center;text-align:center;">
+        <div class="reveal">
+            <div class="pet-ascii" style="margin-bottom:clamp(0.5rem,2vw,1rem);font-size:clamp(3rem,8vw,7rem);">(^_^)</div>
+        </div>
+        <h2 class="reveal reveal-delay-1" style="font-size:clamp(2rem,6vw,4.5rem);letter-spacing:-0.02em;">Thank You.</h2>
+        <p class="reveal reveal-delay-2" style="font-size:clamp(0.9rem,2vw,1.3rem);margin-top:clamp(0.3rem,1vw,0.75rem);opacity:0.9;">
+            Buddy is ready for a demo.
+        </p>
+        <div class="reveal reveal-delay-3" style="display:flex;gap:clamp(0.3rem,0.8vw,0.5rem);flex-wrap:wrap;justify-content:center;margin-top:clamp(0.5rem,1.5vw,1rem);">
+            <span class="tag" style="background:rgba(255,255,255,0.2);color:white;">Pi 4B + Arduino</span>
+            <span class="tag" style="background:rgba(255,255,255,0.2);color:white;">MediaPipe CV</span>
+            <span class="tag" style="background:rgba(255,255,255,0.2);color:white;">Voice AI</span>
+            <span class="tag" style="background:rgba(255,255,255,0.2);color:white;">Gamified Wellness</span>
+        </div>
+        <p class="mono reveal reveal-delay-4" style="font-size:var(--small-size);opacity:0.5;margin-top:clamp(1rem,3vw,2rem);">
+            YHack 2026 &bull; Team Imposture
+        </p>
+    </div>
+</section>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+(function() {
+    'use strict';
+
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const progressBar = document.getElementById('progressBar');
+    const navDotsContainer = document.getElementById('navDots');
+    const slideCounter = document.getElementById('slideCounter');
+    let currentSlide = 0;
+
+    /* Build nav dots */
+    slides.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', () => goToSlide(i));
+        navDotsContainer.appendChild(dot);
+    });
+
+    function updateUI() {
+        /* Progress bar */
+        const pct = ((currentSlide + 1) / totalSlides) * 100;
+        progressBar.style.width = pct + '%';
+
+        /* Nav dots */
+        document.querySelectorAll('.nav-dot').forEach((d, i) => {
+            d.classList.toggle('active', i === currentSlide);
+        });
+
+        /* Counter */
+        slideCounter.textContent = (currentSlide + 1) + ' / ' + totalSlides;
+
+        /* Reveals */
+        slides[currentSlide].querySelectorAll('.reveal').forEach(el => {
+            el.classList.add('visible');
+        });
+    }
+
+    function goToSlide(index) {
+        if (index < 0 || index >= totalSlides) return;
+        currentSlide = index;
+        slides[index].scrollIntoView({ behavior: 'smooth' });
+        updateUI();
+    }
+
+    /* Keyboard navigation */
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+            e.preventDefault();
+            goToSlide(currentSlide + 1);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            goToSlide(currentSlide - 1);
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            goToSlide(0);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            goToSlide(totalSlides - 1);
+        }
+    });
+
+    /* Scroll / snap detection */
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                currentSlide = parseInt(entry.target.dataset.slide);
+                updateUI();
+            }
+        });
+    }, { threshold: 0.5 });
+
+    slides.forEach(slide => observer.observe(slide));
+
+    /* Touch navigation */
+    let touchStartY = 0;
+    document.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        const diff = touchStartY - e.changedTouches[0].clientY;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) goToSlide(currentSlide + 1);
+            else goToSlide(currentSlide - 1);
+        }
+    }, { passive: true });
+
+    /* Initial state */
+    updateUI();
+})();
+</script>
+
+</body>
+</html>

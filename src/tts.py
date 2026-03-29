@@ -1,4 +1,4 @@
-"""Text-to-speech for the Buddy AI Desk Pet.
+"""Text-to-speech for the Wamm AI Desk Pet.
 
 Converts text responses to audio using the ElevenLabs API, with local
 caching of common phrases to reduce latency and API calls.
@@ -22,6 +22,18 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 SAMPLE_RATE: int = 24000
+
+
+def _get_output_device() -> int | str | None:
+    """Return the configured audio output device, or None for system default."""
+    raw = os.getenv("AUDIO_OUTPUT_DEVICE", "")
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return raw
+
 
 CACHED_PHRASES: tuple[str, ...] = (
     "Good posture!",
@@ -133,10 +145,12 @@ class TextToSpeech:
                 segment = AudioSegment.from_mp3(io.BytesIO(audio_data_or_path))
 
             segment = segment.set_frame_rate(SAMPLE_RATE).set_channels(1)
+            # Fade in/out to prevent popping
+            segment = segment.fade_in(50).fade_out(50)
             samples = np.array(segment.get_array_of_samples(), dtype=np.float32)
             samples = samples / 32768.0
 
-            sd.play(samples, samplerate=SAMPLE_RATE)
+            sd.play(samples, samplerate=SAMPLE_RATE, device=_get_output_device())
             sd.wait()
 
         except sd.PortAudioError:

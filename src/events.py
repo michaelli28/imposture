@@ -1,4 +1,4 @@
-"""Event system for the Buddy AI Desk Pet.
+"""Event system for the Wamm AI Desk Pet.
 
 Provides an EventType enum, immutable Event dataclass, and a thread-safe
 EventBus singleton for pub/sub communication between subsystems (CV,
@@ -22,21 +22,16 @@ class EventType(Enum):
     PHONE_DETECTED = auto()
     PHONE_AWAY = auto()
     BUTTON_PRESS = auto()
-    LIGHT_LOW = auto()
-    LIGHT_OK = auto()
-    TEMP_COLD = auto()
-    TEMP_HOT = auto()
-    TEMP_OK = auto()
     WAKE_WORD = auto()
     VOICE_COMMAND = auto()
     TIMER_START = auto()
     TIMER_END = auto()
     RULE_ADDED = auto()
     RULE_REMOVED = auto()
+    SLEEPING = auto()
+    AWAKE = auto()
     XP_GAINED = auto()
     XP_LOST = auto()
-    STAGE_UP = auto()
-    STAGE_DOWN = auto()
 
 
 @dataclass(frozen=True)

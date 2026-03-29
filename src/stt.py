@@ -1,4 +1,4 @@
-"""Speech-to-text for the Buddy AI Desk Pet.
+"""Speech-to-text for the Wamm AI Desk Pet.
 
 Records audio from the microphone, detects silence to auto-stop, and
 transcribes speech via the Deepgram Nova-2 API.
@@ -27,6 +27,16 @@ CHUNK_DURATION_SECONDS: float = 0.1
 CHUNK_SAMPLES: int = int(SAMPLE_RATE * CHUNK_DURATION_SECONDS)
 SILENCE_RMS_THRESHOLD: int = 500
 
+def _get_input_device() -> int | str | None:
+    """Return the configured audio input device, or None for system default."""
+    raw = os.getenv("AUDIO_INPUT_DEVICE", "")
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return raw
+
 
 def _rms(audio_chunk: np.ndarray) -> float:
     """Compute root-mean-square of an int16 audio chunk."""
@@ -43,7 +53,7 @@ class SpeechToText:
             logger.warning(
                 "DEEPGRAM_API_KEY not set; transcription will fail"
             )
-        self._client: DeepgramClient = DeepgramClient(api_key)
+        self._client: DeepgramClient = DeepgramClient(api_key=api_key)
 
     def record_audio(
         self,
@@ -64,6 +74,7 @@ class SpeechToText:
                 channels=CHANNELS,
                 dtype=DTYPE,
                 blocksize=CHUNK_SAMPLES,
+                device=_get_input_device(),
             ) as stream:
                 logger.info("Recording started (max %.1fs)", max_duration)
                 while elapsed < max_duration:

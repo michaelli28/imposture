@@ -1,0 +1,3 @@
+{"type":"server-started","port":55677,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:55677","screen_dir":"/Users/possible/Documents/Imposture/.superpowers/brainstorm/85379-1774781061/content","state_dir":"/Users/possible/Documents/Imposture/.superpowers/brainstorm/85379-1774781061/state"}
+{"type":"screen-added","file":"/Users/possible/Documents/Imposture/.superpowers/brainstorm/85379-1774781061/content/design-directions.html"}
+{"type":"server-stopped","reason":"idle timeout"}

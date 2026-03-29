@@ -1,7 +1,7 @@
-"""LLM command processing for the Buddy AI Desk Pet.
+"""LLM command processing for the Wamm AI Desk Pet.
 
 Sends voice-transcribed text to a Lava API gateway (OpenAI-compatible)
-and parses structured JSON responses describing actions Buddy should take.
+and parses structured JSON responses describing actions Wamm should take.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ DEFAULT_MODEL: str = "default"
 
 
 class LLMProcessor:
-    """Process natural-language commands via a Lava-hosted LLM."""
+    """Process natural-language commands for Wamm via a Lava-hosted LLM."""
 
     def __init__(
         self,
@@ -32,19 +32,19 @@ class LLMProcessor:
         self._rule_engine = rule_engine
         self._pet_state = pet_state_manager
 
-        api_key = os.getenv("LAVA_API_KEY", "")
-        base_url = os.getenv("LAVA_BASE_URL", "")
+        api_key = os.getenv("OPENAI_API_KEY", "") or os.getenv("LAVA_API_KEY", "")
+        base_url = os.getenv("LAVA_BASE_URL", "") or None
 
-        if not api_key or not base_url:
+        if not api_key:
             logger.warning(
-                "LAVA_API_KEY or LAVA_BASE_URL not set; LLM calls will fail"
+                "OPENAI_API_KEY (or LAVA_API_KEY) not set; LLM calls will fail"
             )
 
         self._client: openai.OpenAI = openai.OpenAI(
             api_key=api_key,
             base_url=base_url,
         )
-        self._model: str = os.getenv("LAVA_MODEL", DEFAULT_MODEL)
+        self._model: str = os.getenv("LLM_MODEL", "") or os.getenv("LAVA_MODEL", "") or "gpt-4o-mini"
 
     def process_command(self, text: str) -> dict[str, Any]:
         """Send a user command to the LLM and return a structured action dict.
@@ -52,7 +52,7 @@ class LLMProcessor:
         Returns a dict with at least:
             - "action": one of "add_rule", "remove_rule", "start_timer",
                         "stop_timer", "respond"
-            - "reply": a text response from Buddy
+            - "reply": a text response from Wamm
             - "rule": (optional) rule payload for add/remove actions
         """
         if not text.strip():
@@ -85,18 +85,17 @@ class LLMProcessor:
             return {"action": "respond", "reply": "Something went wrong on my end. Sorry!"}
 
     def _build_system_prompt(self) -> str:
-        """Construct the system prompt with Buddy's personality and context."""
+        """Construct the system prompt with Wamm's personality and context."""
         pet_state = _safe_get_state(self._pet_state)
         active_rules = _safe_get_rules(self._rule_engine)
 
         return (
-            "You are Buddy, a cute and helpful AI desk pet that lives on your "
+            "You are Wamm, a cute and helpful AI desk pet that lives on your "
             "owner's desk. You help them stay productive, maintain good posture, "
             "and take breaks. You speak in short, friendly sentences. You are "
             "enthusiastic but not annoying.\n\n"
             f"Current state:\n"
             f"- Mood: {pet_state.get('mood', 'happy')}\n"
-            f"- Evolution stage: {pet_state.get('stage', 1)}\n"
             f"- XP: {pet_state.get('xp', 0)}\n\n"
             f"Active rules:\n{_format_rules(active_rules)}\n\n"
             "Available actions you can take (return as JSON):\n"
@@ -106,6 +105,8 @@ class LLMProcessor:
             "- remove_rule: Remove a rule. Include a 'rule' object with 'id'.\n"
             "- start_timer: Start a focus timer. Include 'rule' with 'duration' "
             "(seconds, default 1500 for 25 min).\n"
+            "- start_pomodoro: Start a Pomodoro session (25 min focus + 5 min break). "
+            "No extra parameters needed.\n"
             "- stop_timer: Stop the current timer.\n"
             "- respond: Just reply with a message, no special action.\n\n"
             "Always respond with valid JSON:\n"
@@ -123,7 +124,7 @@ def _safe_get_state(pet_state_manager: Any) -> dict[str, Any]:
             return dict(pet_state_manager.to_dict())
     except Exception:
         logger.warning("Could not read pet state, using defaults")
-    return {"mood": "happy", "stage": 1, "xp": 0}
+    return {"mood": "happy", "xp": 0}
 
 
 def _safe_get_rules(rule_engine: Any) -> list[Any]:

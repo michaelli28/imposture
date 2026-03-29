@@ -1,5 +1,5 @@
 /**
- * Buddy AI Desk Pet - Sprite Data
+ * Wamm AI Desk Pet - Sprite Data
  * 128x64 monochrome bitmaps stored in PROGMEM
  * Each sprite is 1024 bytes (128*64/8)
  *
@@ -84,8 +84,7 @@ const unsigned char PROGMEM egg_neutral[] = {
 };
 
 // NOTE: For hackathon, we use procedural face drawing in the firmware
-// instead of full bitmap sprites for each stage/emotion combo.
-// This placeholder sprite is for the egg stage only.
+// instead of full bitmap sprites for each emotion.
 // The firmware draws faces with Adafruit GFX primitives (circles, lines)
 // which is much more memory-efficient on the UNO's 2KB SRAM.
 //

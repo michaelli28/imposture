@@ -1,4 +1,4 @@
-"""Buddy AI Desk Pet — Main Orchestrator.
+"""Wamm AI Desk Pet — Main Orchestrator.
 
 Launches all subsystems and manages graceful shutdown.
 """
@@ -19,11 +19,11 @@ logging.basicConfig(
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-logger = logging.getLogger("buddy")
+logger = logging.getLogger("wamm")
 
 
 def main() -> None:
-    logger.info("=== Buddy AI Desk Pet starting ===")
+    logger.info("=== Wamm AI Desk Pet starting ===")
 
     # Import after dotenv so env vars are available
     from src.cv_pipeline import CVPipeline
@@ -66,14 +66,12 @@ def main() -> None:
     def handle_voice_command() -> None:
         """Record, transcribe, process via LLM, speak response, execute action."""
         logger.info("Listening for voice command...")
-        dispatcher.update_emotion(pet_state_manager.state.stage, "listening")
+        dispatcher.update_emotion("listening")
 
         text = stt.listen_and_transcribe()
         if not text:
             logger.warning("No speech detected")
-            dispatcher.update_emotion(
-                pet_state_manager.state.stage, pet_state_manager.state.emotion
-            )
+            dispatcher.update_emotion(pet_state_manager.state.emotion)
             return
 
         logger.info("Transcribed: %s", text)
@@ -101,15 +99,15 @@ def main() -> None:
         elif action == "start_timer":
             duration = result.get("rule", {}).get("duration", 1500)
             _start_focus_timer(pet_state_manager, dispatcher, duration, shutdown_event)
+        elif action == "start_pomodoro":
+            _start_pomodoro(pet_state_manager, dispatcher, tts, shutdown_event)
         elif action == "stop_timer":
             pet_state_manager.stop_focus()
 
         if reply:
             tts.speak(reply)
 
-        dispatcher.update_emotion(
-            pet_state_manager.state.stage, pet_state_manager.state.emotion
-        )
+        dispatcher.update_emotion(pet_state_manager.state.emotion)
 
     wake_word_listener = WakeWordListener(on_wake=handle_voice_command)
 
@@ -128,17 +126,15 @@ def main() -> None:
     wake_word_listener.start()
 
     # --- Boot animation ---
-    dispatcher.update_emotion(0, "excited")
+    dispatcher.update_emotion("excited")
     time.sleep(1)
-    dispatcher.update_emotion(
-        pet_state_manager.state.stage, pet_state_manager.state.emotion
-    )
+    dispatcher.update_emotion(pet_state_manager.state.emotion)
 
     # --- Start dashboard in background thread ---
     def run_dashboard() -> None:
         from src.dashboard.app import start_server
 
-        start_server(pet_state_manager, rule_engine)
+        start_server(pet_state_manager, rule_engine, cv_pipeline)
 
     dashboard_thread = threading.Thread(target=run_dashboard, daemon=True)
     dashboard_thread.start()
@@ -157,17 +153,15 @@ def main() -> None:
     def shutdown(signum: int, frame: object) -> None:
         logger.info("Shutting down (signal %d)...", signum)
         shutdown_event.set()
-        wake_word_listener.stop()
-        cv_pipeline.stop()
-        serial_comm.disconnect()
         pet_state_manager.persist()
-        logger.info("=== Buddy shut down cleanly ===")
-        sys.exit(0)
+        serial_comm.disconnect()
+        logger.info("=== Wamm shut down cleanly ===")
+        os._exit(0)
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    logger.info("=== Buddy is alive! Say 'Hey Buddy' to interact ===")
+    logger.info("=== Wamm is alive! Say 'Hey Wamm' to interact ===")
 
     # Keep main thread alive
     while not shutdown_event.is_set():
@@ -198,11 +192,68 @@ def _start_focus_timer(
 
         if not shutdown_event.is_set():
             pet_state_manager.stop_focus()
-            dispatcher.update_emotion(pet_state_manager.state.stage, "excited")
+            dispatcher.update_emotion("excited")
             EventBus().emit(Event(type=EventType.TIMER_END, timestamp=_time.time()))
 
     timer_thread = threading.Thread(target=timer_loop, daemon=True)
     timer_thread.start()
+
+
+def _start_pomodoro(
+    pet_state_manager: "PetStateManager",
+    dispatcher: "Dispatcher",
+    tts: "TextToSpeech",
+    shutdown_event: threading.Event,
+) -> None:
+    """Run a Pomodoro cycle: 25 min focus then 5 min break."""
+    import time as _time
+
+    from src.events import Event, EventBus, EventType
+
+    FOCUS_DURATION = 25 * 60  # 25 minutes
+    BREAK_DURATION = 5 * 60   # 5 minutes
+
+    pet_state_manager.start_focus()
+
+    def pomodoro_loop() -> None:
+        # --- Focus phase ---
+        remaining = FOCUS_DURATION
+        while remaining > 0 and not shutdown_event.is_set():
+            minutes = remaining // 60
+            seconds = remaining % 60
+            dispatcher.show_text(f"Focus: {minutes:02d}:{seconds:02d}", "Stay focused!")
+            shutdown_event.wait(1)
+            remaining -= 1
+
+        if shutdown_event.is_set():
+            return
+
+        # Transition to break
+        pet_state_manager.start_break()
+        dispatcher.update_emotion("happy")
+        dispatcher.show_text("Break time!", "Relax for 5 min")
+        tts.speak("Nice work! Time for a 5 minute break.")
+
+        # --- Break phase ---
+        remaining = BREAK_DURATION
+        while remaining > 0 and not shutdown_event.is_set():
+            minutes = remaining // 60
+            seconds = remaining % 60
+            dispatcher.show_text(f"Break: {minutes:02d}:{seconds:02d}", "Relax!")
+            shutdown_event.wait(1)
+            remaining -= 1
+
+        if shutdown_event.is_set():
+            return
+
+        # Pomodoro complete
+        pet_state_manager.stop_break()
+        dispatcher.update_emotion("excited")
+        dispatcher.celebrate()
+        tts.speak("Pomodoro complete! Great job!")
+        EventBus().emit(Event(type=EventType.TIMER_END, timestamp=_time.time()))
+
+    threading.Thread(target=pomodoro_loop, daemon=True).start()
 
 
 if __name__ == "__main__":

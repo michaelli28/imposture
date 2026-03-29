@@ -1,4 +1,4 @@
-# Buddy AI Desk Pet - Pi 4B Dependencies
+# Wamm AI Desk Pet - Pi 4B Dependencies
 
 # Web framework + dashboard
 fastapi==0.115.*
@@ -11,7 +11,7 @@ pyserial==3.5.*
 
 # Computer vision
 mediapipe==0.10.*
-opencv-python-headless==4.10.*
+opencv-python==4.10.*
 
 # Wake word detection
 openwakeword==0.6.*

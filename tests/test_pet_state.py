@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.events import Event, EventBus, EventType
-from src.pet_state import GROWTH_STAGES, PetState, PetStateManager
+from src.pet_state import PetState, PetStateManager
 from src.rules import RuleEngine
 
 
@@ -29,7 +29,6 @@ class TestPetState:
 
     def test_default_state(self) -> None:
         state = PetState()
-        assert state.stage == 0
         assert state.emotion == "neutral"
         assert state.xp == 0
         assert state.focus_active is False
@@ -44,14 +43,7 @@ class TestPetStateManager:
 
     def test_initial_state(self, setup: tuple) -> None:
         manager, _, _ = setup
-        assert manager.state.stage == 0
         assert manager.state.emotion == "neutral"
-
-    def test_get_state_includes_stage_name(self, setup: tuple) -> None:
-        manager, _, _ = setup
-        state_dict = manager.get_state()
-        assert state_dict["stage_name"] == "Egg"
-        assert state_dict["next_stage_xp"] == 15
 
     def test_start_focus(self, setup: tuple) -> None:
         manager, _, _ = setup
@@ -122,14 +114,6 @@ class TestPetStateManager:
         bus.emit(Event(type=EventType.POSTURE_GOOD, timestamp=time.time()))
 
         assert manager.state.emotion == "happy"
-
-    def test_stage_evolution(self, setup: tuple) -> None:
-        manager, _, _ = setup
-        manager.start_focus()
-        # Simulate enough ticks to reach stage 1 (15 XP)
-        for _ in range(16):
-            manager.tick()
-        assert manager.state.stage >= 1
 
     def test_persistence(self, tmp_path: Path) -> None:
         path = tmp_path / "pet_state.json"

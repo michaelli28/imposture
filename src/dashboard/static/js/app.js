@@ -19,8 +19,8 @@
         excited:   "\uD83E\uDD29"
     };
 
-    /* Buddy avatar backgrounds — warm palette */
-    var BUDDY_BACKGROUNDS = {
+    /* Wamm avatar backgrounds — warm palette */
+    var WAMM_BACKGROUNDS = {
         happy:     "#FFF2E6",
         neutral:   "#FFF7ED",
         concerned: "#FEF3C7",
@@ -76,23 +76,14 @@
         setText("emotion-emoji", emoji);
         setText("emotion-label", capitalize(emotion));
 
-        /* Buddy avatar background */
-        var avatarBg = BUDDY_BACKGROUNDS[emotion] || BUDDY_BACKGROUNDS.neutral;
-        var avatar = document.getElementById("buddy-avatar");
+        /* Wamm avatar background */
+        var avatarBg = WAMM_BACKGROUNDS[emotion] || WAMM_BACKGROUNDS.neutral;
+        var avatar = document.getElementById("wam-avatar");
         if (avatar) avatar.style.background = avatarBg;
 
-        /* Stage */
-        var stageName = state.stage_name || "Egg";
-        var stageNum  = state.stage !== undefined ? state.stage : 0;
-        setText("stage-badge", "Stage " + stageNum + " \u00B7 " + stageName);
-
         /* XP */
-        var xp     = state.xp || 0;
-        var xpNext = state.next_stage_xp || 1;
-        var pct    = Math.min(100, (xp / xpNext) * 100);
-        var fill   = document.getElementById("xp-fill");
-        if (fill) fill.style.width = pct + "%";
-        setText("xp-text", xp + " / " + (state.next_stage_xp || "MAX") + " XP");
+        var xp = state.xp || 0;
+        setText("xp-text", xp + " XP");
 
         /* Posture */
         var postureDot = document.getElementById("posture-dot");
@@ -137,6 +128,43 @@
         if (state.focus_active && state.focus_start_time) {
             var elapsedSec = Math.floor(Date.now() / 1000 - state.focus_start_time);
             setText("stat-focus", Math.floor(elapsedSec / 60));
+        }
+
+        /* CV Metrics */
+        var cv = state.cv;
+        if (cv) {
+            var score = cv.posture_score;
+            var scoreCircle = document.getElementById("score-circle");
+            if (score !== null && score !== undefined) {
+                setText("cv-score", score);
+                setText("cv-score-label", cv.posture_label || "Unknown");
+                if (scoreCircle) {
+                    scoreCircle.className = "metric-score-circle";
+                    if (score >= 70) scoreCircle.classList.add("good");
+                    else if (score >= 50) scoreCircle.classList.add("fair");
+                    else scoreCircle.classList.add("poor");
+                }
+            } else {
+                setText("cv-score", "--");
+                setText("cv-score-label", "Waiting...");
+                if (scoreCircle) scoreCircle.className = "metric-score-circle";
+            }
+
+            setText("cv-streak", "Streak: " + (cv.posture_streak_secs || 0) + "s");
+            setText("cv-strikes", "Strikes: " + (cv.posture_strike_count || 0));
+
+            var m = cv.metrics || {};
+            updateMetricBar("bar-spine", "cv-spine", m.spine_angle_deg, 40, "\u00B0");
+            updateMetricBar("bar-neck", "cv-neck", m.neck_angle_deg, 40, "\u00B0");
+            updateMetricBar("bar-ear", "cv-ear", m.ear_forward_norm, 80, "");
+            updateMetricBar("bar-shoulder", "cv-shoulder", m.shoulder_diff_norm, 30, "");
+
+            var phoneDot = document.getElementById("phone-dot");
+            if (phoneDot) {
+                phoneDot.className = "metric-phone-dot" + (cv.phone_visible ? " detected" : "");
+            }
+            setText("cv-phone-label", cv.phone_visible ? "Phone: DETECTED" : "Phone: Not detected");
+            setText("cv-phone-time", cv.phone_seconds > 0 ? cv.phone_seconds + "s" : "");
         }
 
         /* Calibration */
@@ -284,6 +312,14 @@
         fetch("/api/calibrate", { method: "POST" });
     };
 
+    window.resetAll = function () {
+        fetch("/api/reset", { method: "POST" }).then(function () {
+            setText("stat-posture", "0");
+            setText("stat-phone", "0");
+            setText("stat-focus", "0");
+        });
+    };
+
     /* ---- Helpers ---- */
 
     function setText(id, value) {
@@ -303,6 +339,24 @@
         var el = document.createElement("span");
         el.textContent = s;
         return el.innerHTML;
+    }
+
+    function updateMetricBar(barId, valId, value, maxVal, suffix) {
+        var bar = document.getElementById(barId);
+        var valEl = document.getElementById(valId);
+        if (value === null || value === undefined) {
+            if (bar) { bar.style.width = "0%"; bar.className = "metric-bar"; }
+            if (valEl) valEl.textContent = "--" + suffix;
+            return;
+        }
+        var pct = Math.min(100, (Math.abs(value) / maxVal) * 100);
+        if (bar) {
+            bar.style.width = pct + "%";
+            bar.className = "metric-bar";
+            if (pct > 70) bar.classList.add("poor");
+            else if (pct > 40) bar.classList.add("fair");
+        }
+        if (valEl) valEl.textContent = (typeof value === "number" ? value.toFixed(1) : value) + suffix;
     }
 
     /* ---- Camera ---- */

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Buddy AI Desk Pet - Setup ==="
+echo "=== Wamm AI Desk Pet - Setup ==="
 
 # Create virtual environment
 if [ ! -d "venv" ]; then
