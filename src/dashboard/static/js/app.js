@@ -1,4 +1,4 @@
-/* Buddy Dashboard — vanilla JS client */
+/* Imposture Dashboard — Starry Night theme */
 
 (function () {
     "use strict";
@@ -19,6 +19,17 @@
         excited:   "\uD83E\uDD29"
     };
 
+    /* Buddy avatar backgrounds — warm palette */
+    var BUDDY_BACKGROUNDS = {
+        happy:     "#FFF2E6",
+        neutral:   "#FFF7ED",
+        concerned: "#FEF3C7",
+        sad:       "#EFF6FF",
+        angry:     "#FEF2F2",
+        sleeping:  "#F5F3FF",
+        excited:   "#ECFDF5"
+    };
+
     /* ---- WebSocket ---- */
 
     function connectWS() {
@@ -31,7 +42,7 @@
             var dot = document.getElementById("ws-status");
             if (dot) {
                 dot.classList.add("connected");
-                dot.title = "WebSocket connected";
+                dot.title = "Connected";
             }
         };
 
@@ -39,14 +50,14 @@
             try {
                 var state = JSON.parse(event.data);
                 updateState(state);
-            } catch (_) { /* ignore malformed frames */ }
+            } catch (_) {}
         };
 
         ws.onclose = function () {
             var dot = document.getElementById("ws-status");
             if (dot) {
                 dot.classList.remove("connected");
-                dot.title = "WebSocket disconnected";
+                dot.title = "Disconnected";
             }
             setTimeout(connectWS, RECONNECT_DELAY_MS);
         };
@@ -56,7 +67,7 @@
         };
     }
 
-    /* ---- State updates ---- */
+    /* ---- State ---- */
 
     function updateState(state) {
         var emotion = state.emotion || "neutral";
@@ -65,10 +76,17 @@
         setText("emotion-emoji", emoji);
         setText("emotion-label", capitalize(emotion));
 
+        /* Buddy avatar background */
+        var avatarBg = BUDDY_BACKGROUNDS[emotion] || BUDDY_BACKGROUNDS.neutral;
+        var avatar = document.getElementById("buddy-avatar");
+        if (avatar) avatar.style.background = avatarBg;
+
+        /* Stage */
         var stageName = state.stage_name || "Egg";
         var stageNum  = state.stage !== undefined ? state.stage : 0;
-        setText("stage-badge", "Stage " + stageNum + ": " + stageName);
+        setText("stage-badge", "Stage " + stageNum + " \u00B7 " + stageName);
 
+        /* XP */
         var xp     = state.xp || 0;
         var xpNext = state.next_stage_xp || 1;
         var pct    = Math.min(100, (xp / xpNext) * 100);
@@ -76,17 +94,21 @@
         if (fill) fill.style.width = pct + "%";
         setText("xp-text", xp + " / " + (state.next_stage_xp || "MAX") + " XP");
 
+        /* Posture */
         var postureDot = document.getElementById("posture-dot");
         if (postureDot) {
-            postureDot.className = "dot";
-            if (emotion === "sad" || emotion === "concerned") postureDot.classList.add("bad");
-            else if (emotion === "angry") postureDot.classList.add("bad");
-            else postureDot.classList.add("good");
+            postureDot.className = "status-light";
+            if (emotion === "sad" || emotion === "concerned" || emotion === "angry") {
+                postureDot.classList.add("bad");
+            } else {
+                postureDot.classList.add("good");
+            }
         }
         var postureText = (emotion === "angry") ? "Phone Detected" :
-            (emotion === "sad" || emotion === "concerned") ? "Posture: Bad" : "Posture: Good";
+            (emotion === "sad" || emotion === "concerned") ? "Posture: Poor" : "Posture: Good";
         setText("posture-label", postureText);
 
+        /* Focus */
         var focusActive = !!state.focus_active;
         var timerEl     = document.getElementById("focus-timer");
         var startBtn    = document.getElementById("btn-focus-start");
@@ -98,11 +120,16 @@
         if (focusActive) {
             var elapsed = state.focus_elapsed || 0;
             setFocusTimer(elapsed);
-            if (!focusTimerInterval) startLocalTimer(elapsed);
+            if (!focusTimerInterval) {
+                startLocalTimer(elapsed);
+            } else {
+                focusStartTime = Date.now() - (elapsed * 1000);
+            }
         } else {
             stopLocalTimer();
         }
 
+        /* Stats */
         var violations = state.violations_today || {};
         setText("stat-posture", violations.posture_count || 0);
         setText("stat-phone",   violations.phone_count || 0);
@@ -110,6 +137,30 @@
         if (state.focus_active && state.focus_start_time) {
             var elapsedSec = Math.floor(Date.now() / 1000 - state.focus_start_time);
             setText("stat-focus", Math.floor(elapsedSec / 60));
+        }
+
+        /* Calibration */
+        var calib = state.calibration;
+        if (calib) {
+            var calibBtn    = document.getElementById("btn-calibrate");
+            var calibStatus = document.getElementById("calibration-status");
+            var calibText   = document.getElementById("calibration-text");
+
+            if (calib.active) {
+                if (calibBtn) calibBtn.disabled = true;
+                if (calibStatus) calibStatus.style.display = "block";
+                if (calib.phase === "countdown") {
+                    if (calibText) calibText.textContent = "Hold still\u2026 " + calib.countdown_remaining;
+                } else if (calib.phase === "capturing") {
+                    if (calibText) calibText.textContent = "Scanning " + calib.frames_captured + "/" + calib.frames_needed;
+                }
+            } else {
+                if (calibBtn) {
+                    calibBtn.disabled = false;
+                    calibBtn.textContent = calib.calibrated ? "Recalibrate" : "Calibrate";
+                }
+                if (calibStatus) calibStatus.style.display = "none";
+            }
         }
     }
 
@@ -138,13 +189,13 @@
         setText("focus-time", pad(m) + ":" + pad(s));
     }
 
-    /* ---- Rules CRUD ---- */
+    /* ---- Rules ---- */
 
     function fetchRules() {
         fetch("/api/rules")
             .then(function (r) { return r.json(); })
             .then(renderRules)
-            .catch(function () { /* silent */ });
+            .catch(function () {});
     }
 
     function renderRules(rules) {
@@ -164,7 +215,7 @@
                 '<span class="badge badge-' + esc(rule.type) + '">' + esc(rule.type) + '</span>' +
                 '<span class="rule-desc" title="' + esc(rule.description) + '">' + esc(rule.description) + '</span>' +
                 '<span class="badge badge-' + esc(rule.severity) + '">' + esc(rule.severity) + '</span>' +
-                '<button class="rule-delete" onclick="deleteRule(\'' + rule.id + '\')" title="Delete rule">&times;</button>';
+                '<button class="rule-delete" onclick="deleteRule(\'' + rule.id + '\')" title="Delete" aria-label="Delete rule">&times;</button>';
 
             list.appendChild(li);
         });
@@ -225,6 +276,14 @@
         fetch("/api/focus/stop", { method: "POST" });
     };
 
+    /* ---- Calibration ---- */
+
+    window.startCalibration = function () {
+        var btn = document.getElementById("btn-calibrate");
+        if (btn) btn.disabled = true;
+        fetch("/api/calibrate", { method: "POST" });
+    };
+
     /* ---- Helpers ---- */
 
     function setText(id, value) {
@@ -246,8 +305,25 @@
         return el.innerHTML;
     }
 
+    /* ---- Camera ---- */
+
+    function refreshCamera() {
+        var img = document.getElementById("camera-img");
+        if (!img) return;
+        var newImg = new Image();
+        newImg.onload = function () {
+            img.src = newImg.src;
+            setTimeout(refreshCamera, 100);
+        };
+        newImg.onerror = function () {
+            setTimeout(refreshCamera, 500);
+        };
+        newImg.src = "/api/camera_frame?" + Date.now();
+    }
+
     /* ---- Init ---- */
 
     connectWS();
     fetchRules();
+    refreshCamera();
 })();
