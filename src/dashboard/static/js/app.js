@@ -1,4 +1,4 @@
-/* Imposture Dashboard — Starry Night theme */
+/* Imposture Dashboard */
 
 (function () {
     "use strict";
