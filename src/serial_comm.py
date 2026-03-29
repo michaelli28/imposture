@@ -38,7 +38,10 @@ RETRY_DELAY_SECONDS: float = 2.0
 def _detect_arduino_port() -> str | None:
     """Scan common serial paths and return the first match, or None."""
     candidates = sorted(
-        glob.glob("/dev/ttyACM*") + glob.glob("/dev/ttyUSB*")
+        glob.glob("/dev/ttyACM*")
+        + glob.glob("/dev/ttyUSB*")
+        + glob.glob("/dev/cu.usbmodem*")
+        + glob.glob("/dev/tty.usbmodem*")
     )
     if candidates:
         logger.info("Auto-detected Arduino port: %s", candidates[0])

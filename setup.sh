@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Buddy AI Desk Pet - Pi Setup ==="
+echo "=== Buddy AI Desk Pet - Setup ==="
 
 # Create virtual environment
 if [ ! -d "venv" ]; then
@@ -16,11 +16,14 @@ echo "Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Install PortAudio for sounddevice (needed on Pi)
+# Install system audio deps (platform-specific)
 if command -v apt-get &> /dev/null; then
-    echo "Installing system audio dependencies..."
+    echo "Installing system audio dependencies (Linux)..."
     sudo apt-get update -qq
     sudo apt-get install -y -qq portaudio19-dev libsndfile1
+elif command -v brew &> /dev/null; then
+    echo "Installing system audio dependencies (Mac)..."
+    brew list portaudio &>/dev/null || brew install portaudio
 fi
 
 # Create .env from example if it doesn't exist
@@ -49,4 +52,4 @@ echo ""
 echo "=== Setup complete! ==="
 echo "1. Edit .env with your API keys"
 echo "2. Connect Arduino via USB"
-echo "3. Run: source venv/bin/activate && python src/main.py"
+echo "3. Run: source venv/bin/activate && python -m src.main"
