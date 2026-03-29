@@ -5,3 +5,5 @@ __pycache__/
 data/*.json
 assets/audio/*.mp3
 .DS_Store
+*.task
+*.tflite

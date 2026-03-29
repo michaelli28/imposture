@@ -165,11 +165,17 @@ class PetStateManager:
 
     def _on_posture_bad(self, event: Event) -> None:
         matching_rules = self._rule_engine.match_event(event)
-        if not matching_rules:
-            return
 
-        worst_severity = self._worst_severity(matching_rules)
-        emotion = "sad" if worst_severity == "strict" else "concerned"
+        # Use severity from CV pipeline if available, else from rules
+        cv_severity = event.data.get("severity", "")
+        if matching_rules:
+            rule_severity = self._worst_severity(matching_rules)
+        else:
+            rule_severity = cv_severity or "moderate"
+
+        severity = cv_severity or rule_severity
+        score = event.data.get("score", 0)
+        emotion = "sad" if severity == "strict" or score < 30 else "concerned"
 
         new_xp = max(0, self._state.xp + XP_LOSS_POSTURE)
         violations = {
@@ -186,11 +192,14 @@ class PetStateManager:
             timestamp=time.time(),
             data={"amount": abs(XP_LOSS_POSTURE)},
         ))
-        logger.info("Posture bad — emotion=%s, xp=%d, severity=%s", emotion, new_xp, worst_severity)
+        logger.info(
+            "Posture bad — score=%s, emotion=%s, xp=%d, severity=%s",
+            score, emotion, new_xp, severity,
+        )
 
         if self._dispatcher is not None:
             self._dispatcher.update_emotion(self._state.stage, emotion)
-            self._dispatcher.alert_posture(worst_severity)
+            self._dispatcher.alert_posture(severity)
 
     def _on_posture_good(self, event: Event) -> None:
         self._state = self._update_state(emotion="happy")

@@ -32,6 +32,19 @@ fi
 # Create data directory for persistent state
 mkdir -p data assets/audio
 
+# Download MediaPipe model files if not present
+if [ ! -f "pose_landmarker.task" ]; then
+    echo "Downloading MediaPipe PoseLandmarker model..."
+    curl -sL -o pose_landmarker.task \
+        https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task
+fi
+
+if [ ! -f "object_detector.tflite" ]; then
+    echo "Downloading MediaPipe ObjectDetector model..."
+    curl -sL -o object_detector.tflite \
+        https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite
+fi
+
 echo ""
 echo "=== Setup complete! ==="
 echo "1. Edit .env with your API keys"
