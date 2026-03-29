@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imposture — Your AI Desk Buddy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/landing.css">
+</head>
+<body>
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">imposture</a>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="nav-links" id="nav-links">
+                <a href="#features">Features</a>
+                <a href="#tech-stack">Tech Stack</a>
+                <a href="/dashboard" class="nav-cta">Open Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-blobs" aria-hidden="true">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-pet" aria-hidden="true">
+                <div class="pet-circle">
+                    <svg class="pet-pixel-art" viewBox="0 0 16 16" width="80" height="80">
+                        <rect x="5" y="2" width="6" height="8" rx="3" fill="#F97316"/>
+                        <rect x="6" y="4" width="1" height="2" fill="#1E293B"/>
+                        <rect x="9" y="4" width="1" height="2" fill="#1E293B"/>
+                        <rect x="7" y="7" width="2" height="1" fill="#1E293B"/>
+                        <rect x="4" y="10" width="2" height="2" fill="#F97316"/>
+                        <rect x="10" y="10" width="2" height="2" fill="#F97316"/>
+                    </svg>
+                </div>
+            </div>
+            <h1>Your desk buddy that <span class="highlight">keeps you honest.</span></h1>
+            <p class="hero-sub">An AI-powered Tamagotchi that watches your posture, guards against distractions, and grows the more you focus.</p>
+            <a href="/dashboard" class="btn-primary">Meet Your Buddy</a>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2>What Buddy Does</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 20a13.4 13.4 0 0 1 0-16"/><path d="M18.8 4a13.4 13.4 0 0 1 0 16"/><circle cx="12" cy="12" r="2"/></svg>
+                </div>
+                <h3>Posture Watch</h3>
+                <p>MediaPipe tracks your spine angle in real-time and nudges you to sit tall.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+                </div>
+                <h3>Phone Guard</h3>
+                <p>Detects when you pick up your phone and alerts your buddy — no cheating.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <h3>Growth System</h3>
+                <p>Egg to Adult in 5 stages. Focus to level up, slack off and your buddy devolves.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                </div>
+                <h3>Voice Commands</h3>
+                <p>"Hey Buddy" — set rules, start timers, and chat with your pet using your voice.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="tech-stack" id="tech-stack">
+        <h2>Built With</h2>
+        <div class="tech-grid">
+            <span class="tech-chip">Raspberry Pi 4B</span>
+            <span class="tech-chip">Arduino UNO</span>
+            <span class="tech-chip">MediaPipe Pose</span>
+            <span class="tech-chip">OpenWakeWord</span>
+            <span class="tech-chip">FastAPI</span>
+            <span class="tech-chip">ElevenLabs TTS</span>
+            <span class="tech-chip">Deepgram STT</span>
+            <span class="tech-chip">Lava LLM</span>
+            <span class="tech-chip">SSD1309 OLED</span>
+            <span class="tech-chip">NeoPixel LEDs</span>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>Imposture &mdash; YHack 2026</p>
+    </footer>
+
+    <script src="/static/js/landing.js"></script>
+</body>
+</html>
