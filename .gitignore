@@ -1,9 +1,28 @@
-venv/
+# Python
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Virtual environments
+venv/
+ven/
+.venv/
+
+# Secrets
 .env
-data/*.json
+.env.*
+!.env.example
+*.pem
+
+# Runtime data written by the app
+data/
 assets/audio/*.mp3
-.DS_Store
+
+# Model files (downloaded by setup.sh)
 *.task
 *.tflite
+
+# Tooling / OS
+.superpowers/
+.claude/
+.DS_Store
