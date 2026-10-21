@@ -2,7 +2,7 @@
 
 Imposture is a desk pet that watches you through a webcam. It notices when you slouch, pick up your phone, or put your head down, and reacts with faces on a small LCD, lights, sounds and voice. You can also talk to it to set rules or start a focus timer. In the code the pet is called Wamm.
 
-Built at YHack 2026 as a team project.
+Built at YHack 2026 ([Devpost](https://devpost.com/software/imposture-krvg9h)) by Arianne Guisadio, Will Wands, Maeve Hong and Michael Li.
 
 ## How it works
 
